@@ -45,26 +45,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarTrigger,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-} from '@/components/ui/sidebar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
+import { AppSidebar } from '@/components/app-sidebar';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => <p>Loading editor...</p>,
 });
 
-function FileTypeIcon({
+export function FileTypeIcon({
   language,
   className,
 }: {
@@ -246,20 +237,6 @@ export default function CodePilotPage() {
     }
   };
 
-  const handleAddNewFile = () => {
-    const fileName = prompt(
-      'Enter new file name (e.g., index.html, style.css, script.js, main.py)'
-    );
-    if (fileName) {
-      addFile(fileName);
-    }
-  };
-
-  const handleDeleteFile = (id: string) => {
-    deleteFile(id);
-    setFileToDelete(null);
-  };
-
   const handleGenerateSuggestions = async () => {
     if (!activeFile) return;
     setIsGenerating(true);
@@ -322,366 +299,309 @@ export default function CodePilotPage() {
 
   return (
     <TooltipProvider>
-      <SidebarProvider>
-        <div className="flex flex-col h-screen bg-background font-sans overflow-hidden">
-          <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <Code className="w-6 h-6 text-primary" />
-              <h1 className="text-xl font-bold font-headline">CodePilot</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleGenerateSuggestions}
-                      size="sm"
-                      variant="outline"
-                      disabled={isGenerating || !activeFile}
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      {isGenerating ? 'Generating...' : 'AI Suggest'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Get AI suggestions for the current file</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleExportProject}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Download project as a .zip file</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleRunCode}
-                      size="sm"
-                      disabled={isExecuting || !activeFile}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {isExecuting ? (
-                        <LoadingSpinner className="mr-2" />
-                      ) : (
-                        <Play className="mr-2 h-4 w-4" />
-                      )}
-                      {isExecuting ? 'Running...' : 'Run'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Run code and see preview</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <ThemeToggle />
-              <UserNav user={user} auth={auth} />
-            </div>
-          </header>
-          <div className="flex flex-grow min-h-0">
-            <Sidebar>
-              <SidebarContent>
-                <SidebarHeader>
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold">File Explorer</h2>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleAddNewFile}
-                          className="h-7 w-7"
-                        >
-                          <FilePlus className="w-4 h-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>New File</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </SidebarHeader>
-                <SidebarMenu>
-                  {files.map((file) => (
-                    <SidebarMenuItem key={file.id}>
-                      <SidebarMenuButton
-                        onClick={() => openFile(file.id)}
-                        isActive={activeFileId === file.id}
-                        className="justify-start w-full group/file-button"
-                      >
-                        <FileTypeIcon
-                          language={file.language}
-                          className="w-4 h-4 mr-2"
-                        />
-                        <span className="flex-grow text-left truncate">
-                          {file.name}
-                        </span>
-                      </SidebarMenuButton>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1.5 h-6 w-6 opacity-0 group-hover/menu-item:opacity-100"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFileToDelete(file.id);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          <p>Delete File</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarContent>
-            </Sidebar>
-
-            <ResizablePanelGroup
-              direction="horizontal"
-              className="flex-grow min-w-0"
-            >
-              <ResizablePanel
-                defaultSize={85}
-                className="flex flex-col min-w-0"
-              >
-                <ResizablePanelGroup direction="vertical">
-                  <ResizablePanel
-                    defaultSize={70}
-                    minSize={20}
-                    className="flex flex-col min-h-0"
-                  >
-                    <div className="flex flex-col h-full min-w-0">
-                      {openFiles.length > 0 ? (
-                        <Tabs
-                          value={activeFileId || ''}
-                          onValueChange={setActiveFile}
-                          className="flex flex-col flex-grow min-h-0"
-                        >
-                          <div className="flex items-center justify-between border-b bg-muted/30">
-                            <ScrollArea className="h-full w-full overflow-x-auto">
-                              <TabsList className="flex w-max bg-transparent border-none p-0 m-0">
-                                {openFiles.map((file) => (
-                                  <div
-                                    key={file.id}
-                                    className="relative group/tab"
-                                  >
-                                    <TabsTrigger
-                                      value={file.id}
-                                      className="h-10 pr-8 border-b-2 border-r border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none data-[state=active]:bg-background"
-                                    >
-                                      <FileTypeIcon
-                                        language={file.language}
-                                        className="w-4 h-4 mr-2"
-                                      />
-                                      {file.name}
-                                    </TabsTrigger>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        closeFile(file.id);
-                                      }}
-                                      className="absolute top-1/2 right-1.5 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted-foreground/20 opacity-0 group-hover/tab:opacity-100"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </TabsList>
-                            </ScrollArea>
-                          </div>
-                          {openFiles.map((file) => (
-                            <TabsContent
-                              key={file.id}
-                              value={file.id}
-                              className="flex-grow mt-0 min-h-0"
-                            >
-                              <Editor
-                                height="100%"
-                                language={file.language}
-                                value={file.content}
-                                onChange={(content) =>
-                                  updateFileContent(file.id, content || '')
-                                }
-                                theme="vs-dark"
-                                options={{
-                                  minimap: { enabled: false },
-                                  lineNumbers: 'on',
-                                }}
-                              />
-                            </TabsContent>
-                          ))}
-                        </Tabs>
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          <div className="text-center">
-                            <Code className="w-24 h-24 mx-auto text-muted-foreground/20" />
-                            <p className="mt-4 text-lg">
-                              Select a file to begin
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Or create a new file to start coding.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </ResizablePanel>
-                  <ResizableHandle withHandle />
-                  <ResizablePanel
-                    defaultSize={30}
-                    minSize={10}
-                    className="min-h-0"
-                  >
-                    <Tabs
-                      value={activeTab}
-                      onValueChange={setActiveTab}
-                      className="h-full flex flex-col"
-                    >
-                      <TabsList>
-                        <TabsTrigger value="preview">Preview</TabsTrigger>
-                        <TabsTrigger value="console">Console</TabsTrigger>
-                      </TabsList>
-                      <TabsContent
-                        value="preview"
-                        className="flex-grow bg-white mt-0 rounded-b-lg overflow-hidden"
-                      >
-                        <div className="w-full h-full overflow-hidden">
-                          <iframe
-                            srcDoc={previewDoc}
-                            title="Preview"
-                            className="w-full h-full border-0"
-                            sandbox="allow-scripts allow-modals"
-                          />
-                        </div>
-                      </TabsContent>
-                      <TabsContent
-                        value="console"
-                        className="flex-grow mt-0 flex flex-col"
-                      >
-                        <div className="flex items-center gap-2 border-b px-2 py-1 bg-muted/50">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleClearConsole}
-                                className="h-6 w-6"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Clear Console</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleCopyConsole}
-                                className="h-6 w-6"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Copy Output</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleDownloadLogs}
-                                className="h-6 w-6"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Download Logs</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <pre className="p-4 text-sm bg-muted flex-grow overflow-auto font-mono text-foreground rounded-b-lg">
-                          {output}
-                        </pre>
-                      </TabsContent>
-                    </Tabs>
-                  </ResizablePanel>
-                </ResizablePanelGroup>
-              </ResizablePanel>
-            </ResizablePanelGroup>
+      <div className="flex flex-col h-screen bg-background font-sans overflow-hidden">
+        <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
+          <div className="flex items-center gap-2">
+            <Code className="w-6 h-6 text-primary" />
+            <h1 className="text-xl font-bold font-headline">CodePilot</h1>
           </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleGenerateSuggestions}
+                    size="sm"
+                    variant="outline"
+                    disabled={isGenerating || !activeFile}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {isGenerating ? 'Generating...' : 'AI Suggest'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Get AI suggestions for the current file</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleExportProject}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Download project as a .zip file</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleRunCode}
+                    size="sm"
+                    disabled={isExecuting || !activeFile}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {isExecuting ? (
+                      <LoadingSpinner className="mr-2" />
+                    ) : (
+                      <Play className="mr-2 h-4 w-4" />
+                    )}
+                    {isExecuting ? 'Running...' : 'Run'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Run code and see preview</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <ThemeToggle />
+            <UserNav user={user} auth={auth} />
+          </div>
+        </header>
+        <div className="flex flex-grow min-h-0">
+          <AppSidebar />
+          <ResizablePanelGroup
+            direction="horizontal"
+            className="flex-grow min-w-0"
+          >
+            <ResizablePanel
+              defaultSize={85}
+              className="flex flex-col min-w-0"
+            >
+              <ResizablePanelGroup direction="vertical">
+                <ResizablePanel
+                  defaultSize={70}
+                  minSize={20}
+                  className="flex flex-col min-h-0"
+                >
+                  <div className="flex flex-col h-full min-w-0">
+                    {openFiles.length > 0 ? (
+                      <Tabs
+                        value={activeFileId || ''}
+                        onValueChange={setActiveFile}
+                        className="flex flex-col flex-grow min-h-0"
+                      >
+                        <div className="flex items-center justify-between border-b bg-muted/30">
+                          <ScrollArea className="h-full w-full overflow-x-auto">
+                            <TabsList className="flex w-max bg-transparent border-none p-0 m-0">
+                              {openFiles.map((file) => (
+                                <div
+                                  key={file.id}
+                                  className="relative group/tab"
+                                >
+                                  <TabsTrigger
+                                    value={file.id}
+                                    className="h-10 pr-8 border-b-2 border-r border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none data-[state=active]:bg-background"
+                                  >
+                                    <FileTypeIcon
+                                      language={file.language}
+                                      className="w-4 h-4 mr-2"
+                                    />
+                                    {file.name}
+                                  </TabsTrigger>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      closeFile(file.id);
+                                    }}
+                                    className="absolute top-1/2 right-1.5 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted-foreground/20 opacity-0 group-hover/tab:opacity-100"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </TabsList>
+                          </ScrollArea>
+                        </div>
+                        {openFiles.map((file) => (
+                          <TabsContent
+                            key={file.id}
+                            value={file.id}
+                            className="flex-grow mt-0 min-h-0"
+                          >
+                            <Editor
+                              height="100%"
+                              language={file.language}
+                              value={file.content}
+                              onChange={(content) =>
+                                updateFileContent(file.id, content || '')
+                              }
+                              theme="vs-dark"
+                              options={{
+                                minimap: { enabled: false },
+                                lineNumbers: 'on',
+                              }}
+                            />
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        <div className="text-center">
+                          <Code className="w-24 h-24 mx-auto text-muted-foreground/20" />
+                          <p className="mt-4 text-lg">
+                            Select a file to begin
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Or create a new file to start coding.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel
+                  defaultSize={30}
+                  minSize={10}
+                  className="min-h-0"
+                >
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    className="h-full flex flex-col"
+                  >
+                    <TabsList>
+                      <TabsTrigger value="preview">Preview</TabsTrigger>
+                      <TabsTrigger value="console">Console</TabsTrigger>
+                    </TabsList>
+                    <TabsContent
+                      value="preview"
+                      className="flex-grow bg-white mt-0 rounded-b-lg overflow-hidden"
+                    >
+                      <div className="w-full h-full overflow-hidden">
+                        <iframe
+                          srcDoc={previewDoc}
+                          title="Preview"
+                          className="w-full h-full border-0"
+                          sandbox="allow-scripts allow-modals"
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent
+                      value="console"
+                      className="flex-grow mt-0 flex flex-col"
+                    >
+                      <div className="flex items-center gap-2 border-b px-2 py-1 bg-muted/50">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={handleClearConsole}
+                              className="h-6 w-6"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Clear Console</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={handleCopyConsole}
+                              className="h-6 w-6"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copy Output</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={handleDownloadLogs}
+                              className="h-6 w-6"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Download Logs</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <pre className="p-4 text-sm bg-muted flex-grow overflow-auto font-mono text-foreground rounded-b-lg">
+                        {output}
+                      </pre>
+                    </TabsContent>
+                  </Tabs>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
-        <AlertDialog open={showSuggestions} onOpenChange={setShowSuggestions}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>AI Code Suggestions</AlertDialogTitle>
-              <AlertDialogDescription>
-                Here are some suggestions to improve your code:
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <ScrollArea className="h-60">
-              <ul className="space-y-2 p-4">
-                {suggestions.map((s, i) => (
-                  <li key={i} className="text-sm p-2 bg-muted rounded">
-                    {s}
-                  </li>
-                ))}
-              </ul>
-            </ScrollArea>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={() => setShowSuggestions(false)}>
-                Close
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <AlertDialog
-          open={!!fileToDelete}
-          onOpenChange={() => setFileToDelete(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the
-                file{' '}
-                <span className="font-bold">
-                  {files.find((f) => f.id === fileToDelete)?.name}
-                </span>
-                .
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setFileToDelete(null)}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDeleteFile(fileToDelete!)}>
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </SidebarProvider>
+      </div>
+      <AlertDialog open={showSuggestions} onOpenChange={setShowSuggestions}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>AI Code Suggestions</AlertDialogTitle>
+            <AlertDialogDescription>
+              Here are some suggestions to improve your code:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ScrollArea className="h-60">
+            <ul className="space-y-2 p-4">
+              {suggestions.map((s, i) => (
+                <li key={i} className="text-sm p-2 bg-muted rounded">
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowSuggestions(false)}>
+              Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={!!fileToDelete}
+        onOpenChange={() => setFileToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              file{' '}
+              <span className="font-bold">
+                {files.find((f) => f.id === fileToDelete)?.name}
+              </span>
+              .
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setFileToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (fileToDelete) {
+                  deleteFile(fileToDelete);
+                  setFileToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }
