@@ -53,12 +53,20 @@ import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { AppSidebar } from '@/components/app-sidebar';
 import 'xterm/css/xterm.css';
-import { TerminalComponent } from '@/components/terminal';
+import type { TerminalComponent as TerminalComponentType } from '@/components/terminal';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => <p>Loading editor...</p>,
 });
+
+const TerminalComponent = dynamic(
+  () => import('@/components/terminal').then((mod) => mod.TerminalComponent),
+  {
+    ssr: false,
+    loading: () => <p>Loading terminal...</p>,
+  }
+);
 
 export function FileTypeIcon({
   language,
@@ -174,7 +182,7 @@ export default function CodePilotPage() {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const auth = getAuth(app);
-  const terminalRef = useRef<TerminalComponent | null>(null);
+  const terminalRef = useRef<TerminalComponentType | null>(null);
 
   useEffect(() => {
     loadInitialFiles();
