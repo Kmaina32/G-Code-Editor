@@ -234,7 +234,7 @@ export default function CodePilotPage() {
                       <SidebarMenuButton
                         onClick={() => openFile(file.id)}
                         isActive={activeFileId === file.id}
-                        className="justify-start w-full group/file"
+                        className="justify-start w-full"
                       >
                         <FileTypeIcon
                           language={file.language}
@@ -247,7 +247,7 @@ export default function CodePilotPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1.5 h-6 w-6 opacity-0 group-hover/file:opacity-100"
+                            className="absolute right-1 top-1.5 h-6 w-6 opacity-0 group-hover/menu-item:opacity-100"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteFile(file.id);
@@ -267,7 +267,7 @@ export default function CodePilotPage() {
             </Sidebar>
 
             <ResizablePanelGroup direction="horizontal" className="flex-grow min-w-0">
-              <ResizablePanel defaultSize={85}>
+              <ResizablePanel defaultSize={85} className="min-w-0">
                 <ResizablePanelGroup direction="vertical">
                   <ResizablePanel defaultSize={70} minSize={20}>
                     <div className="flex flex-col h-full">
@@ -275,11 +275,11 @@ export default function CodePilotPage() {
                         <Tabs
                           value={activeFileId || ''}
                           onValueChange={setActiveFile}
-                          className="flex flex-col flex-grow"
+                          className="flex flex-col flex-grow min-w-0"
                         >
                           <div className="flex items-center justify-between border-b bg-muted/30">
-                            <ScrollArea className="h-full">
-                              <TabsList className="bg-transparent border-none p-0 m-0">
+                            <ScrollArea className="h-full overflow-x-auto">
+                              <TabsList className="bg-transparent border-none p-0 m-0 w-max">
                                 {openFiles.map((file) => (
                                   <div
                                     key={file.id}
@@ -308,7 +308,7 @@ export default function CodePilotPage() {
                                 ))}
                               </TabsList>
                             </ScrollArea>
-                            <div className="flex items-center gap-2 p-2">
+                            <div className="flex items-center gap-2 p-2 shrink-0">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
@@ -366,7 +366,7 @@ export default function CodePilotPage() {
                             <TabsContent
                               key={file.id}
                               value={file.id}
-                              className="flex-grow mt-0"
+                              className="flex-grow mt-0 min-w-0"
                             >
                               <Editor
                                 height="100%"
