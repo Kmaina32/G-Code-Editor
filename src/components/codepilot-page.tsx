@@ -190,7 +190,7 @@ export function CodePilotPage() {
   const [activeTab, setActiveTab] = useState('terminal');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(isGenerating);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
@@ -896,5 +896,3 @@ export function CodePilotPage() {
     </TooltipProvider>
   );
 }
-
-    
