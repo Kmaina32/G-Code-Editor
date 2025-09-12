@@ -190,7 +190,7 @@ export function CodePilotPage() {
   const [activeTab, setActiveTab] = useState('terminal');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(isGenerating);
   const [isExecuting, setIsExecuting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
@@ -443,6 +443,31 @@ export function CodePilotPage() {
     const content = await zip.generateAsync({ type: 'blob' });
     saveAs(content, 'codepilot-project.zip');
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
+
+      if (ctrlKey && event.key === 'Enter') {
+        event.preventDefault();
+        handleRunCode();
+      }
+      if (ctrlKey && event.key === 'i') {
+        event.preventDefault();
+        handleGenerateSuggestions();
+      }
+      if (ctrlKey && event.key === 'e') {
+        event.preventDefault();
+        handleExportProject();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeFile, files]);
 
   const handleClearConsole = () => {
     setOutput('');
@@ -871,3 +896,5 @@ export function CodePilotPage() {
     </TooltipProvider>
   );
 }
+
+    
