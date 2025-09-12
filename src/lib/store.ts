@@ -10,6 +10,13 @@ export interface File {
   isModified?: boolean;
 }
 
+export interface Commit {
+  id: string;
+  message: string;
+  createdAt: string;
+  files: File[];
+}
+
 export interface EditorSettings {
   fontSize: number;
 }
@@ -22,6 +29,7 @@ interface StoreState {
   fileToDelete: string | null;
   extensions: Extension[];
   editorSettings: EditorSettings;
+  commits: Commit[];
 }
 
 interface StoreActions {
@@ -70,6 +78,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   editorSettings: {
     fontSize: 14,
   },
+  commits: [],
 
   setEditorSettings: (settings) => {
     set((state) => ({
@@ -187,10 +196,14 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           return { ...ext, installed: true };
         }
         // If it's a theme, uninstall other themes
-        if (ext.type === 'theme' && ext.id !== id) {
-          return { ...ext, installed: false };
+        const updatedExt = {...ext};
+        if (updatedExt.type === 'theme') {
+          const newExt = state.extensions.find(e => e.id === id);
+          if (newExt?.type === 'theme') {
+            updatedExt.installed = false;
+          }
         }
-        return ext;
+        return updatedExt;
       }),
     }));
   },
@@ -204,8 +217,19 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
 
   commitChanges: (message: string) => {
-    console.log('Committing changes with message:', message);
+    const { files } = get();
+    const modifiedFiles = files.filter(file => file.isModified);
+    if(modifiedFiles.length === 0) return;
+
+    const newCommit: Commit = {
+      id: `commit-${Date.now()}`,
+      message,
+      createdAt: new Date().toISOString(),
+      files: modifiedFiles.map(f => ({...f})) // Create a snapshot
+    };
+    
     set(state => ({
+      commits: [newCommit, ...state.commits],
       files: state.files.map(file => ({...file, isModified: false}))
     }))
   }

@@ -7,9 +7,11 @@ import { Button } from "../ui/button";
 import { FileTypeIcon } from "@/app/page";
 import { ScrollArea } from "../ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { GitCommit } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 export default function GitPage() {
-  const { files, commitChanges } = useStore();
+  const { files, commits, commitChanges } = useStore();
   const [commitMessage, setCommitMessage] = useState("");
   const { toast } = useToast();
 
@@ -33,10 +35,11 @@ export default function GitPage() {
     }
 
     commitChanges(commitMessage);
+    const numFiles = modifiedFiles.length;
     setCommitMessage("");
     toast({
         title: "Changes committed",
-        description: `Committed ${modifiedFiles.length} file(s). (This is a simulation)`,
+        description: `Committed ${numFiles} file(s).`,
     });
   };
 
@@ -62,7 +65,7 @@ export default function GitPage() {
         <h3 className="text-xs font-bold uppercase text-muted-foreground px-2 mb-1">
             Changes
         </h3>
-        <ScrollArea className="flex-grow">
+        <ScrollArea className="flex-grow max-h-48">
             <ul className="space-y-1">
             {modifiedFiles.map(file => (
                 <li key={file.id} className="flex items-center text-sm p-1 rounded-md">
@@ -71,7 +74,31 @@ export default function GitPage() {
                 </li>
             ))}
              {modifiedFiles.length === 0 && (
-                <p className="text-xs text-muted-foreground px-2 mt-2">No changes detected.</p>
+                <p className="text-xs text-muted-foreground px-2 mt-2">No changes to commit.</p>
+            )}
+            </ul>
+        </ScrollArea>
+      </div>
+
+       <div className="mt-4 flex-grow flex flex-col min-h-0">
+        <h3 className="text-xs font-bold uppercase text-muted-foreground px-2 mb-1">
+            Commit History
+        </h3>
+        <ScrollArea className="flex-grow">
+            <ul className="space-y-3">
+            {commits.map(commit => (
+                <li key={commit.id} className="flex items-start text-sm p-1 rounded-md">
+                    <GitCommit className="w-4 h-4 mr-3 mt-0.5 text-muted-foreground" />
+                    <div className="flex-grow">
+                        <p className="font-medium leading-tight">{commit.message}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            {formatDistanceToNow(new Date(commit.createdAt), { addSuffix: true })}
+                        </p>
+                    </div>
+                </li>
+            ))}
+             {commits.length === 0 && (
+                <p className="text-xs text-muted-foreground px-2 mt-2">No commits yet.</p>
             )}
             </ul>
         </ScrollArea>
