@@ -164,6 +164,7 @@ export default function CodePilotPage() {
     isLoading,
   } = useStore();
   const [output, setOutput] = useState('');
+  const [terminalOutput, setTerminalOutput] = useState<string[]>(['Welcome to the CodePilot Terminal!']);
   const [previewDoc, setPreviewDoc] = useState('');
   const [activeTab, setActiveTab] = useState('terminal');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -265,23 +266,21 @@ export default function CodePilotPage() {
     e.preventDefault();
     if (!terminalInput) return;
 
+    const newCommand = `$ ${terminalInput}`;
+    setTerminalOutput((prev) => [...prev, newCommand]);
     setIsExecuting(true);
-    setOutput((prev) => `${prev}> ${terminalInput}\n`);
-    setActiveTab('output');
-
+    
     try {
       const result = await executeCode({
         command: terminalInput,
-        // For arbitrary commands, we might not have a relevant file.
-        // We'll pass empty values for now.
         language: 'shell',
         code: '',
       });
-      setOutput((prev) => prev + result.output + '\n');
+      setTerminalOutput((prev) => [...prev, result.output]);
     } catch (error) {
       console.error('Error executing command:', error);
-      const errorMessage = `Error: ${error}\n`;
-      setOutput((prev) => prev + errorMessage);
+      const errorMessage = `Error: ${error}`;
+      setTerminalOutput((prev) => [...prev, errorMessage]);
       toast({
         variant: 'destructive',
         title: 'Execution Error',
@@ -328,6 +327,10 @@ export default function CodePilotPage() {
   const handleClearConsole = () => {
     setOutput('');
   };
+  
+  const handleClearTerminal = () => {
+    setTerminalOutput(['Welcome to the CodePilot Terminal!']);
+  }
 
   const handleCopyConsole = () => {
     navigator.clipboard.writeText(output);
@@ -651,6 +654,7 @@ export default function CodePilotPage() {
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6"
+                              onClick={handleClearTerminal}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -675,10 +679,10 @@ export default function CodePilotPage() {
                         </Tooltip>
                       </div>
                       <div className="p-4 text-sm bg-muted flex-grow overflow-auto font-mono text-foreground rounded-b-lg">
-                        <div className="text-muted-foreground">
-                          Welcome to the CodePilot Terminal!
-                        </div>
-                        <form onSubmit={handleTerminalSubmit} className="flex gap-2 mt-2">
+                        <pre className="whitespace-pre-wrap">
+                          {terminalOutput.join('\n')}
+                        </pre>
+                        <form onSubmit={handleTerminalSubmit} className="flex gap-2">
                           <span className="text-green-400 shrink-0">$</span>
                           <Input
                             value={terminalInput}
@@ -686,6 +690,7 @@ export default function CodePilotPage() {
                             className="bg-transparent border-none p-0 h-auto focus-visible:ring-0"
                             autoFocus
                             autoComplete="off"
+                            disabled={isExecuting}
                           />
                         </form>
                       </div>
@@ -757,5 +762,3 @@ export default function CodePilotPage() {
     </TooltipProvider>
   );
 }
-
-    
