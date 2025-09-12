@@ -6,7 +6,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { useStore } from '@/lib/store';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -23,18 +23,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { extensions } = useStore();
-  const activeTheme = useMemo(() => {
-    const installedTheme = extensions.find(
-      (ext) => ext.type === 'theme' && ext.installed
-    );
-    return installedTheme ? installedTheme.id : 'dark';
-  }, [extensions]);
+  const { activeThemeId } = useStore();
 
   useEffect(() => {
     document.documentElement.className = '';
-    document.documentElement.classList.add(activeTheme);
-  }, [activeTheme]);
+    document.documentElement.classList.add(activeThemeId);
+  }, [activeThemeId]);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -52,7 +46,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={cn('font-body antialiased', activeTheme)}>
+      <body className={cn('font-body antialiased', activeThemeId)}>
         {children}
         <Toaster />
       </body>

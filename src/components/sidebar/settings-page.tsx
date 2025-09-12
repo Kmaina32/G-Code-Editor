@@ -6,9 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 
 
 export default function SettingsPage() {
-  const { editorSettings, setEditorSettings } = useStore();
+  const { editorSettings, setEditorSettings, extensions, activeThemeId, setActiveThemeId } = useStore();
 
   const fontSizes = [10, 12, 14, 16, 18, 20, 24];
+  const installedThemes = extensions.filter(ext => ext.type === 'theme' && ext.installed);
 
   return (
     <div className="space-y-6">
@@ -18,7 +19,7 @@ export default function SettingsPage() {
 
       <div className="space-y-4">
         <h3 className="text-xs font-bold uppercase text-muted-foreground px-2">Editor</h3>
-        <div className="p-2 border rounded-lg bg-background/30">
+        <div className="p-2 border rounded-lg bg-background/30 space-y-4">
             <div className="flex items-center justify-between">
                 <Label htmlFor="font-size" className="text-sm">Font Size</Label>
                 <Select
@@ -31,6 +32,22 @@ export default function SettingsPage() {
                     <SelectContent>
                         {fontSizes.map(size => (
                             <SelectItem key={size} value={String(size)}>{size} px</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="flex items-center justify-between">
+                <Label htmlFor="theme" className="text-sm">Theme</Label>
+                <Select
+                    value={activeThemeId}
+                    onValueChange={setActiveThemeId}
+                >
+                    <SelectTrigger className="w-[150px] h-8">
+                        <SelectValue placeholder="Select Theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {installedThemes.map(theme => (
+                            <SelectItem key={theme.id} value={theme.id}>{theme.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

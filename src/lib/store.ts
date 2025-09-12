@@ -30,6 +30,7 @@ interface StoreState {
   extensions: Extension[];
   editorSettings: EditorSettings;
   commits: Commit[];
+  activeThemeId: string;
 }
 
 interface StoreActions {
@@ -46,6 +47,7 @@ interface StoreActions {
   uninstallExtension: (id: string) => void;
   setEditorSettings: (settings: Partial<EditorSettings>) => void;
   commitChanges: (message: string) => void;
+  setActiveThemeId: (id: string) => void;
 }
 
 const getLanguage = (fileName: string): string => {
@@ -79,12 +81,15 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     fontSize: 14,
   },
   commits: [],
+  activeThemeId: 'theme-dark',
 
   setEditorSettings: (settings) => {
     set((state) => ({
       editorSettings: { ...state.editorSettings, ...settings },
     }));
   },
+
+  setActiveThemeId: (id: string) => set({ activeThemeId: id }),
 
   loadInitialFiles: () => {
     const initialFiles = defaultFiles.map((file, index) => ({
@@ -190,22 +195,14 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
 
   installExtension: (id: string) => {
-    set((state) => ({
-      extensions: state.extensions.map((ext) => {
-        if (ext.id === id) {
-          return { ...ext, installed: true };
-        }
-        // If it's a theme, uninstall other themes
-        const updatedExt = {...ext};
-        if (updatedExt.type === 'theme') {
-          const newExt = state.extensions.find(e => e.id === id);
-          if (newExt?.type === 'theme') {
-            updatedExt.installed = false;
-          }
-        }
-        return updatedExt;
-      }),
-    }));
+    set((state) => {
+      const extensions = state.extensions.map((ext) =>
+        ext.id === id ? { ...ext, installed: true } : ext
+      );
+      const newExt = extensions.find((e) => e.id === id);
+      const activeThemeId = newExt?.type === 'theme' ? id : state.activeThemeId;
+      return { extensions, activeThemeId };
+    });
   },
 
   uninstallExtension: (id: string) => {
@@ -213,6 +210,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       extensions: state.extensions.map((ext) =>
         ext.id === id ? { ...ext, installed: false } : ext
       ),
+      activeThemeId:
+        state.activeThemeId === id ? 'theme-dark' : state.activeThemeId,
     }));
   },
 
