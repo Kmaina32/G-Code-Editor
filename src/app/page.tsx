@@ -190,29 +190,30 @@ export default function CodePilotPage() {
               <div className="flex flex-col h-full">
                 {openFiles.length > 0 ? (
                   <Tabs
-                    value={activeFileId}
+                    value={activeFileId || ''}
                     onValueChange={setActiveFile}
                     className="flex flex-col flex-grow"
                   >
                     <div className="flex items-center justify-between border-b pr-2">
                       <TabsList className="bg-transparent border-none p-0 m-0">
                         {openFiles.map(file => (
-                          <TabsTrigger
-                            key={file.id}
-                            value={file.id}
-                            className="h-10 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none"
-                          >
-                            {file.name}
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                closeFile(file.id);
-                              }}
-                              className="ml-2 p-0.5 rounded hover:bg-muted"
+                          <div key={file.id} className="relative group">
+                            <TabsTrigger
+                              value={file.id}
+                              className="h-10 pr-8 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none"
                             >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </TabsTrigger>
+                              {file.name}
+                            </TabsTrigger>
+                            <button
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  closeFile(file.id);
+                                }}
+                                className="absolute top-1/2 right-1.5 -translate-y-1/2 p-0.5 rounded hover:bg-muted opacity-0 group-hover:opacity-100"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                          </div>
                         ))}
                       </TabsList>
                        <div className="flex items-center gap-2">
