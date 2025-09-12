@@ -193,7 +193,7 @@ export default function CodePilotPage() {
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <div className="flex flex-col h-screen bg-background font-sans">
+        <div className="flex flex-col h-screen bg-background font-sans overflow-x-hidden">
           <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
