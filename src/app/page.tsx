@@ -182,13 +182,32 @@ export default function CodePilotPage() {
   const { toast } = useToast();
   const auth = getAuth(app);
   const terminalRef = useRef<TerminalComponentType | null>(null);
+  const jsWorkerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
     loadInitialFiles();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
-    return () => unsubscribe();
+
+    // Initialize the JS Web Worker
+    jsWorkerRef.current = new Worker('/js-worker.js');
+
+    // Handle messages from the worker
+    jsWorkerRef.current.onmessage = (event) => {
+      const { type, message } = event.data;
+      const formattedMessage = message.replace(/\n/g, '\r\n');
+      if (type === 'log' || type === 'error') {
+        terminalRef.current?.write(formattedMessage + '\r\n');
+      }
+      setIsExecuting(false);
+      terminalRef.current?.write('$ ');
+    };
+
+    return () => {
+      unsubscribe();
+      jsWorkerRef.current?.terminate();
+    };
   }, [loadInitialFiles, auth]);
 
   const activeFile = useMemo(
@@ -220,9 +239,12 @@ export default function CodePilotPage() {
   const handleRunCode = async () => {
     if (!activeFile) return;
 
-    const command = getCommandForFile(activeFile);
-
-    if (command === 'preview') {
+    if (activeFile.language === 'javascript') {
+      setIsExecuting(true);
+      terminalRef.current?.write(`\r\n> node ${activeFile.name}\r\n`);
+      jsWorkerRef.current?.postMessage({ code: activeFile.content });
+      setActiveTab('terminal');
+    } else if (activeFile.language === 'html') {
       const htmlFile = files.find((f) => f.name.endsWith('.html'));
       const cssFile = files.find((f) => f.name.endsWith('.css'));
       const jsFile = files.find((f) => f.name.endsWith('.js'));
@@ -234,7 +256,25 @@ export default function CodePilotPage() {
           </head>
           <body>
             ${htmlFile?.content || ''}
-            <script>${jsFile?.content || ''}</script>
+            <script>${
+              jsFile?.content
+                ? `
+              // Web Worker based console for preview
+              const workerConsole = {
+                log: (...args) => window.parent.postMessage({ source: 'iframe', type: 'log', message: args.join(' ') }, '*'),
+                error: (...args) => window.parent.postMessage({ source: 'iframe', type: 'error', message: args.join(' ') }, '*'),
+                warn: (...args) => window.parent.postMessage({ source: 'iframe', type: 'warn', message: args.join(' ') }, '*'),
+              };
+              window.console = { ...window.console, ...workerConsole };
+              
+              try {
+                ${jsFile.content}
+              } catch (e) {
+                console.error(e);
+              }
+            `
+                : ''
+            }</script>
           </body>
         </html>
       `;
@@ -243,20 +283,20 @@ export default function CodePilotPage() {
       setActiveTab('preview');
     } else {
       setIsExecuting(true);
-      setOutput(`> ${command}\n`);
-      setPreviewDoc('');
-      setActiveTab('output');
+      const command = getCommandForFile(activeFile);
+      terminalRef.current?.write(`\r\n> ${command}\r\n`);
+      setActiveTab('terminal');
       try {
         const result = await executeCode({
           command: command,
           language: activeFile.language,
           code: activeFile.content,
         });
-        setOutput((prev) => prev + result.output);
+        terminalRef.current?.write(result.output.replace(/\n/g, '\r\n'));
       } catch (error) {
         console.error('Error executing code:', error);
         const errorMessage = `Error executing code: ${error}`;
-        setOutput((prev) => prev + errorMessage);
+        terminalRef.current?.write(errorMessage.replace(/\n/g, '\r\n'));
         toast({
           variant: 'destructive',
           title: 'Execution Error',
@@ -264,6 +304,7 @@ export default function CodePilotPage() {
         });
       } finally {
         setIsExecuting(false);
+        terminalRef.current?.write('$ ');
       }
     }
   };
@@ -271,9 +312,11 @@ export default function CodePilotPage() {
   const handleTerminalSubmit = useCallback(
     async (command: string) => {
       if (!command) return;
+      if (isExecuting) return;
 
       terminalRef.current?.write(`\r\n$ ${command}\r\n`);
       setIsExecuting(true);
+      setActiveTab('terminal');
 
       try {
         const result = await executeCode({
@@ -294,9 +337,10 @@ export default function CodePilotPage() {
       } finally {
         setIsExecuting(false);
         terminalRef.current?.focus();
+        terminalRef.current?.write('$ ');
       }
     },
-    [toast]
+    [toast, isExecuting]
   );
 
   const handleGenerateSuggestions = async () => {
