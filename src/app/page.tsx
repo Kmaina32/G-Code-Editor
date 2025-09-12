@@ -267,9 +267,9 @@ export default function CodePilotPage() {
             </Sidebar>
 
             <ResizablePanelGroup direction="horizontal" className="flex-grow min-w-0">
-              <ResizablePanel defaultSize={85} className="min-w-0">
+              <ResizablePanel defaultSize={85} className="flex flex-col min-w-0">
                 <ResizablePanelGroup direction="vertical">
-                  <ResizablePanel defaultSize={70} minSize={20}>
+                  <ResizablePanel defaultSize={70} minSize={20} className="flex flex-col min-h-0">
                     <div className="flex flex-col h-full">
                       {openFiles.length > 0 ? (
                         <Tabs
@@ -279,7 +279,7 @@ export default function CodePilotPage() {
                         >
                           <div className="flex items-center justify-between border-b bg-muted/30">
                             <ScrollArea className="h-full overflow-x-auto">
-                              <TabsList className="bg-transparent border-none p-0 m-0 w-max">
+                              <TabsList className="flex w-max bg-transparent border-none p-0 m-0">
                                 {openFiles.map((file) => (
                                   <div
                                     key={file.id}
@@ -366,7 +366,7 @@ export default function CodePilotPage() {
                             <TabsContent
                               key={file.id}
                               value={file.id}
-                              className="flex-grow mt-0 min-w-0"
+                              className="flex-grow mt-0 min-h-0"
                             >
                               <Editor
                                 height="100%"
@@ -393,7 +393,7 @@ export default function CodePilotPage() {
                     </div>
                   </ResizablePanel>
                   <ResizableHandle withHandle />
-                  <ResizablePanel defaultSize={30} minSize={10}>
+                  <ResizablePanel defaultSize={30} minSize={10} className="min-h-0">
                     <Tabs
                       value={activeTab}
                       onValueChange={setActiveTab}
