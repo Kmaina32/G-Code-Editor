@@ -14,7 +14,11 @@ const pages: Record<string, { component: JSX.Element; icon: React.ReactNode, tit
 };
 
 export function AppSidebar() {
-  const [activePage, setActivePage] = useState("explorer");
+  const [activePage, setActivePage] = useState<string | null>("explorer");
+
+  const handleIconClick = (pageKey: string) => {
+    setActivePage((currentPage) => (currentPage === pageKey ? null : pageKey));
+  };
 
   return (
     <div className="flex h-full bg-muted/30">
@@ -24,7 +28,7 @@ export function AppSidebar() {
           <Tooltip key={key}>
             <TooltipTrigger asChild>
               <button
-                onClick={() => setActivePage(key)}
+                onClick={() => handleIconClick(key)}
                 className={cn(
                     "p-2 rounded-md hover:bg-accent",
                     activePage === key && "bg-accent text-accent-foreground"
@@ -41,8 +45,13 @@ export function AppSidebar() {
       </div>
 
       {/* Sidebar Content */}
-      <div className="w-64 text-foreground p-2 overflow-y-auto">
-        {pages[activePage].component}
+      <div
+        className={cn(
+          "transition-all duration-300 ease-in-out overflow-hidden",
+          activePage ? "w-64 p-2" : "w-0"
+        )}
+      >
+        {activePage && pages[activePage] && pages[activePage].component}
       </div>
     </div>
   );
