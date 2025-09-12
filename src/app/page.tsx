@@ -15,7 +15,7 @@ import {
   PowerOff,
   Square,
 } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
   ResizableHandle,
@@ -176,6 +176,7 @@ export default function CodePilotPage() {
   const [terminalInput, setTerminalInput] = useState('');
   const { toast } = useToast();
   const auth = getAuth(app);
+  const terminalViewport = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadInitialFiles();
@@ -184,6 +185,15 @@ export default function CodePilotPage() {
     });
     return () => unsubscribe();
   }, [loadInitialFiles, auth]);
+
+  useEffect(() => {
+    if (terminalViewport.current) {
+      terminalViewport.current.scrollTo({
+        top: terminalViewport.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [terminalOutput]);
 
   const activeFile = useMemo(
     () => files.find((file) => file.id === activeFileId),
@@ -678,22 +688,24 @@ export default function CodePilotPage() {
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <div className="p-4 text-sm bg-muted flex-grow overflow-auto font-mono text-foreground rounded-b-lg">
-                        <pre className="whitespace-pre-wrap">
-                          {terminalOutput.join('\n')}
-                        </pre>
-                        <form onSubmit={handleTerminalSubmit} className="flex gap-2">
-                          <span className="text-green-400 shrink-0">$</span>
-                          <Input
-                            value={terminalInput}
-                            onChange={(e) => setTerminalInput(e.target.value)}
-                            className="bg-transparent border-none p-0 h-auto focus-visible:ring-0"
-                            autoFocus
-                            autoComplete="off"
-                            disabled={isExecuting}
-                          />
-                        </form>
-                      </div>
+                      <ScrollArea className="flex-grow bg-muted rounded-b-lg" viewportRef={terminalViewport}>
+                        <div className="p-4 text-sm font-mono text-foreground h-full">
+                          <pre className="whitespace-pre-wrap">
+                            {terminalOutput.join('\n')}
+                          </pre>
+                          <form onSubmit={handleTerminalSubmit} className="flex gap-2">
+                            <span className="text-green-400 shrink-0">$</span>
+                            <Input
+                              value={terminalInput}
+                              onChange={(e) => setTerminalInput(e.target.value)}
+                              className="bg-transparent border-none p-0 h-auto focus-visible:ring-0"
+                              autoFocus
+                              autoComplete="off"
+                              disabled={isExecuting}
+                            />
+                          </form>
+                        </div>
+                      </ScrollArea>
                     </TabsContent>
                   </Tabs>
                 </ResizablePanel>
@@ -762,3 +774,5 @@ export default function CodePilotPage() {
     </TooltipProvider>
   );
 }
+
+    
