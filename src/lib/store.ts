@@ -7,6 +7,11 @@ export interface File {
   name: string;
   language: string;
   content: string;
+  isModified?: boolean;
+}
+
+export interface EditorSettings {
+  fontSize: number;
 }
 
 interface StoreState {
@@ -16,6 +21,7 @@ interface StoreState {
   isLoading: boolean;
   fileToDelete: string | null;
   extensions: Extension[];
+  editorSettings: EditorSettings;
 }
 
 interface StoreActions {
@@ -30,6 +36,8 @@ interface StoreActions {
   setActiveFile: (id: string) => void;
   installExtension: (id: string) => void;
   uninstallExtension: (id: string) => void;
+  setEditorSettings: (settings: Partial<EditorSettings>) => void;
+  commitChanges: (message: string) => void;
 }
 
 const getLanguage = (fileName: string): string => {
@@ -59,11 +67,21 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   isLoading: true,
   fileToDelete: null,
   extensions: defaultExtensions,
+  editorSettings: {
+    fontSize: 14,
+  },
+
+  setEditorSettings: (settings) => {
+    set((state) => ({
+      editorSettings: { ...state.editorSettings, ...settings },
+    }));
+  },
 
   loadInitialFiles: () => {
     const initialFiles = defaultFiles.map((file, index) => ({
       ...file,
       id: `file-${index}-${Date.now()}`,
+      isModified: false,
     }));
     set({
       files: initialFiles,
@@ -79,6 +97,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       name,
       language: getLanguage(name),
       content: '',
+      isModified: true, // New files are considered "modified"
     };
     set((state) => ({
       files: [...state.files, newFile],
@@ -115,7 +134,12 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => ({
       files: state.files.map((file) =>
         file.id === id
-          ? { ...file, name: newName, language: getLanguage(newName) }
+          ? {
+              ...file,
+              name: newName,
+              language: getLanguage(newName),
+              isModified: true,
+            }
           : file
       ),
     }));
@@ -124,7 +148,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   updateFileContent: (id, content) => {
     set((state) => ({
       files: state.files.map((file) =>
-        file.id === id ? { ...file, content } : file
+        file.id === id ? { ...file, content, isModified: true } : file
       ),
     }));
   },
@@ -178,4 +202,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       ),
     }));
   },
+
+  commitChanges: (message: string) => {
+    console.log('Committing changes with message:', message);
+    set(state => ({
+      files: state.files.map(file => ({...file, isModified: false}))
+    }))
+  }
 }));

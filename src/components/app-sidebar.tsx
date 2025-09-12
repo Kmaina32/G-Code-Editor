@@ -6,6 +6,9 @@ import ExplorerPage from "./sidebar/explorer-page";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { cn } from "@/lib/utils";
 import ExtensionsPage from "./sidebar/extensions-page";
+import SearchPage from "./sidebar/search-page";
+import GitPage from "./sidebar/git-page";
+import SettingsPage from "./sidebar/settings-page";
 
 const pages: Record<
   string,
@@ -16,15 +19,15 @@ const pages: Record<
     icon: <Folder />,
     title: "File Explorer",
   },
-  search: { component: <div>Search Page</div>, icon: <Search />, title: "Search" },
-  git: { component: <div>Git Page</div>, icon: <GitBranch />, title: "Source Control" },
+  search: { component: <SearchPage />, icon: <Search />, title: "Search" },
+  git: { component: <GitPage />, icon: <GitBranch />, title: "Source Control" },
   extensions: {
     component: <ExtensionsPage />,
     icon: <Puzzle />,
     title: "Extensions",
   },
   settings: {
-    component: <div>Settings Page</div>,
+    component: <SettingsPage />,
     icon: <Settings />,
     title: "Settings",
   },

@@ -170,6 +170,7 @@ export default function CodePilotPage() {
     fileToDelete,
     setFileToDelete,
     isLoading,
+    editorSettings,
   } = useStore();
   const [output, setOutput] = useState('');
   const [previewDoc, setPreviewDoc] = useState('');
@@ -544,6 +545,7 @@ export default function CodePilotPage() {
                               options={{
                                 minimap: { enabled: false },
                                 lineNumbers: 'on',
+                                fontSize: editorSettings.fontSize,
                               }}
                             />
                           </TabsContent>
