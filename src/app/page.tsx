@@ -5,7 +5,6 @@ import {
   Copy,
   Download,
   File as FileIcon,
-  FilePlus,
   Play,
   Sparkles,
   Trash2,
@@ -15,7 +14,7 @@ import {
   PowerOff,
   Square,
 } from 'lucide-react';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   ResizableHandle,
@@ -53,7 +52,8 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { AppSidebar } from '@/components/app-sidebar';
-import { Input } from '@/components/ui/input';
+import 'xterm/css/xterm.css';
+import { TerminalComponent } from '@/components/terminal';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -165,9 +165,6 @@ export default function CodePilotPage() {
     isLoading,
   } = useStore();
   const [output, setOutput] = useState('');
-  const [terminalOutput, setTerminalOutput] = useState<string[]>([
-    'Welcome to the CodePilot Terminal!',
-  ]);
   const [previewDoc, setPreviewDoc] = useState('');
   const [activeTab, setActiveTab] = useState('terminal');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -175,10 +172,9 @@ export default function CodePilotPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [terminalInput, setTerminalInput] = useState('');
   const { toast } = useToast();
   const auth = getAuth(app);
-  const terminalViewport = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<TerminalComponent | null>(null);
 
   useEffect(() => {
     loadInitialFiles();
@@ -187,15 +183,6 @@ export default function CodePilotPage() {
     });
     return () => unsubscribe();
   }, [loadInitialFiles, auth]);
-
-  useEffect(() => {
-    if (terminalViewport.current) {
-      terminalViewport.current.scrollTo({
-        top: terminalViewport.current.scrollHeight,
-        behavior: 'smooth',
-      });
-    }
-  }, [terminalOutput]);
 
   const activeFile = useMemo(
     () => files.find((file) => file.id === activeFileId),
@@ -274,35 +261,36 @@ export default function CodePilotPage() {
     }
   };
 
-  const handleTerminalSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!terminalInput) return;
+  const handleTerminalSubmit = useCallback(
+    async (command: string) => {
+      if (!command) return;
 
-    const newCommand = `$ ${terminalInput}`;
-    setTerminalOutput((prev) => [...prev, newCommand]);
-    setIsExecuting(true);
+      terminalRef.current?.write(`\r\n$ ${command}\r\n`);
+      setIsExecuting(true);
 
-    try {
-      const result = await executeCode({
-        command: terminalInput,
-        language: 'shell',
-        code: '',
-      });
-      setTerminalOutput((prev) => [...prev, result.output]);
-    } catch (error) {
-      console.error('Error executing command:', error);
-      const errorMessage = `Error: ${error}`;
-      setTerminalOutput((prev) => [...prev, errorMessage]);
-      toast({
-        variant: 'destructive',
-        title: 'Execution Error',
-        description: 'Could not run the command on the backend.',
-      });
-    } finally {
-      setIsExecuting(false);
-      setTerminalInput('');
-    }
-  };
+      try {
+        const result = await executeCode({
+          command: command,
+          language: 'shell',
+          code: '',
+        });
+        terminalRef.current?.write(result.output.replace(/\n/g, '\r\n'));
+      } catch (error) {
+        console.error('Error executing command:', error);
+        const errorMessage = `Error: ${error}`;
+        terminalRef.current?.write(errorMessage.replace(/\n/g, '\r\n'));
+        toast({
+          variant: 'destructive',
+          title: 'Execution Error',
+          description: 'Could not run the command on the backend.',
+        });
+      } finally {
+        setIsExecuting(false);
+        terminalRef.current?.focus();
+      }
+    },
+    [toast]
+  );
 
   const handleGenerateSuggestions = async () => {
     if (!activeFile) return;
@@ -341,7 +329,7 @@ export default function CodePilotPage() {
   };
 
   const handleClearTerminal = () => {
-    setTerminalOutput(['Welcome to the CodePilot Terminal!']);
+    terminalRef.current?.clear();
   };
 
   const handleCopyConsole = () => {
@@ -690,32 +678,11 @@ export default function CodePilotPage() {
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <ScrollArea
-                        className="flex-grow bg-muted rounded-b-lg"
-                        viewportRef={terminalViewport}
-                      >
-                        <div className="p-4 text-sm font-mono text-foreground h-full">
-                          <pre className="whitespace-pre-wrap">
-                            {terminalOutput.join('\n')}
-                          </pre>
-                          <form
-                            onSubmit={handleTerminalSubmit}
-                            className="flex gap-2"
-                          >
-                            <span className="text-green-400 shrink-0">$</span>
-                            <Input
-                              value={terminalInput}
-                              onChange={(e) =>
-                                setTerminalInput(e.target.value)
-                              }
-                              className="bg-transparent border-none p-0 h-auto focus-visible:ring-0"
-                              autoFocus
-                              autoComplete="off"
-                              disabled={isExecuting}
-                            />
-                          </form>
-                        </div>
-                      </ScrollArea>
+                      <TerminalComponent
+                        ref={terminalRef}
+                        onCommand={handleTerminalSubmit}
+                        disabled={isExecuting}
+                      />
                     </TabsContent>
                   </Tabs>
                 </ResizablePanel>
