@@ -195,14 +195,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
 
   installExtension: (id: string) => {
-    set((state) => {
-      const extensions = state.extensions.map((ext) =>
+    set((state) => ({
+      extensions: state.extensions.map((ext) =>
         ext.id === id ? { ...ext, installed: true } : ext
-      );
-      const newExt = extensions.find((e) => e.id === id);
-      const activeThemeId = newExt?.type === 'theme' ? id : state.activeThemeId;
-      return { extensions, activeThemeId };
-    });
+      ),
+    }));
   },
 
   uninstallExtension: (id: string) => {
