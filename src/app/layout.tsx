@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { useStore } from '@/lib/store';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -45,6 +46,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
       </head>
       <body className={cn('font-body antialiased', activeThemeId)}>
         {children}

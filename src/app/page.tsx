@@ -67,6 +67,18 @@ const TerminalComponent = dynamic(
   }
 );
 
+declare global {
+  interface Window {
+    loadPyodide: (options: {
+      indexURL: string;
+    }) => Promise<{
+      runPython: (code: string) => any;
+      setStdout: (options: { batched: (output: string) => void }) => void;
+      setStderr: (options: { batched: (output: string) => void }) => void;
+    }>;
+  }
+}
+
 export function FileTypeIcon({
   language,
   className,
@@ -184,6 +196,8 @@ export default function CodePilotPage() {
   const auth = getAuth(app);
   const terminalRef = useRef<TerminalComponentType | null>(null);
   const jsWorkerRef = useRef<Worker | null>(null);
+  const pyodideRef = useRef<any>(null);
+  const [isPyodideLoading, setIsPyodideLoading] = useState(false);
 
   useEffect(() => {
     loadInitialFiles();
@@ -197,13 +211,45 @@ export default function CodePilotPage() {
     // Handle messages from the worker
     jsWorkerRef.current.onmessage = (event) => {
       const { type, message } = event.data;
-      const formattedMessage = message.replace(/\n/g, '\r\n');
+      const formattedMessage = String(message).replace(/\n/g, '\r\n');
       if (type === 'log' || type === 'error') {
         terminalRef.current?.write(formattedMessage + '\r\n');
       }
       setIsExecuting(false);
       terminalRef.current?.write('$ ');
     };
+
+    // Initialize Pyodide
+    const initPyodide = async () => {
+      if (window.loadPyodide) {
+        setIsPyodideLoading(true);
+        terminalRef.current?.write('Loading Pyodide...\r\n');
+        try {
+          const pyodide = await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/',
+          });
+          pyodide.setStdout({
+            batched: (output) => {
+              terminalRef.current?.write(output.replace(/\n/g, '\r\n') + '\r\n');
+            },
+          });
+          pyodide.setStderr({
+            batched: (output) => {
+              terminalRef.current?.write(output.replace(/\n/g, '\r\n') + '\r\n');
+            },
+          });
+          pyodideRef.current = pyodide;
+          terminalRef.current?.write('Pyodide loaded. Python is ready.\r\n');
+        } catch (error) {
+          console.error('Failed to load Pyodide:', error);
+          terminalRef.current?.write('Error: Failed to load Pyodide.\r\n');
+        } finally {
+          setIsPyodideLoading(false);
+          terminalRef.current?.write('$ ');
+        }
+      }
+    };
+    initPyodide();
 
     return () => {
       unsubscribe();
@@ -245,6 +291,27 @@ export default function CodePilotPage() {
       terminalRef.current?.write(`\r\n> node ${activeFile.name}\r\n`);
       jsWorkerRef.current?.postMessage({ code: activeFile.content });
       setActiveTab('terminal');
+    } else if (activeFile.language === 'python') {
+      if (!pyodideRef.current) {
+        toast({
+          variant: 'destructive',
+          title: 'Pyodide Not Ready',
+          description: 'The Python runtime is still loading. Please wait.',
+        });
+        return;
+      }
+      setIsExecuting(true);
+      setActiveTab('terminal');
+      terminalRef.current?.write(`\r\n> python ${activeFile.name}\r\n`);
+      try {
+        await pyodideRef.current.runPython(activeFile.content);
+      } catch (error) {
+        console.error('Python execution error:', error);
+        terminalRef.current?.write(String(error).replace(/\n/g, '\r\n'));
+      } finally {
+        setIsExecuting(false);
+        terminalRef.current?.write('$ ');
+      }
     } else if (activeFile.language === 'html') {
       const htmlFile = files.find((f) => f.name.endsWith('.html'));
       const cssFile = files.find((f) => f.name.endsWith('.css'));
@@ -454,10 +521,10 @@ export default function CodePilotPage() {
                   <Button
                     onClick={handleRunCode}
                     size="sm"
-                    disabled={isExecuting || !activeFile}
+                    disabled={isExecuting || !activeFile || isPyodideLoading}
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
-                    {isExecuting ? (
+                    {isExecuting || isPyodideLoading ? (
                       <LoadingSpinner className="mr-2" />
                     ) : (
                       <Play className="mr-2 h-4 w-4" />
