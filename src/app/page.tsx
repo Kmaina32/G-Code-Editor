@@ -241,25 +241,25 @@ export default function CodePilotPage() {
                           className="w-4 h-4"
                         />
                         <span className="flex-grow text-left">{file.name}</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 opacity-0 group-hover/file:opacity-100"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteFile(file.id);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            <p>Delete File</p>
-                          </TooltipContent>
-                        </Tooltip>
                       </SidebarMenuButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1.5 h-6 w-6 opacity-0 group-hover/file:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteFile(file.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p>Delete File</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
