@@ -52,6 +52,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -79,7 +80,6 @@ function FileTypeIcon({
           className={className}
         >
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <polyline points="14 2 14 8 20 8" />
           <path d="m10 13-1.1 2.2a.9.9 0 0 1-1.7-.1L6 13" />
           <path d="m18 13-1.1 2.2a.9.9 0 0 1-1.7-.1L14 13" />
           <path d="M12 19.5V13" />
@@ -98,7 +98,6 @@ function FileTypeIcon({
           className={className}
         >
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <polyline points="14 2 14 8 20 8" />
           <path d="m10.5 13.5.5-1.5 5.5 2" />
           <path d="m9 16.5 5.5-1" />
           <path d="m14.5 12.5.5 2 5.5-1" />
@@ -106,7 +105,7 @@ function FileTypeIcon({
         </svg>
       );
     case 'javascript':
-       return (
+      return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -118,7 +117,6 @@ function FileTypeIcon({
           className={className}
         >
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <polyline points="14 2 14 8 20 8" />
           <path d="M10 12h-1" />
           <path d="M14 12h1" />
           <path d="M10 18H9a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-1a1 1 0 0 0-1 1v-2a1 1 0 0 0 1-1h2a1 1 0 0 0 1 1v2a1 1 0 0 0 1 1h1" />
@@ -126,7 +124,7 @@ function FileTypeIcon({
         </svg>
       );
     case 'python':
-       return (
+      return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -138,7 +136,6 @@ function FileTypeIcon({
           className={className}
         >
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <polyline points="14 2 14 8 20 8" />
           <path d="M11.5 12.5h1" />
           <path d="M15 16h-1a1.5 1.5 0 0 1-3 0h-1" />
           <path d="M15 13a2 2 0 0 0-2-2H9v6" />
@@ -163,6 +160,7 @@ export default function CodePilotPage() {
     closeFile,
     setActiveFile,
     deleteFile,
+    isLoading,
   } = useStore();
   const [output, setOutput] = useState('');
   const [previewDoc, setPreviewDoc] = useState('');
@@ -258,10 +256,22 @@ export default function CodePilotPage() {
     saveAs(content, 'codepilot-project.zip');
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-background">
+        <LoadingSpinner className="w-12 h-12" />
+        <div className="flex items-center gap-2 mt-4">
+          <Code className="w-6 h-6 text-primary" />
+          <h1 className="text-xl font-bold font-headline">CodePilot</h1>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <div className="flex flex-col h-screen bg-background font-sans overflow-x-hidden">
+        <div className="flex flex-col h-screen bg-background font-sans overflow-hidden">
           <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
@@ -335,9 +345,16 @@ export default function CodePilotPage() {
             </Sidebar>
 
             <ResizablePanelGroup direction="horizontal" className="flex-grow min-w-0">
-              <ResizablePanel defaultSize={85} className="flex flex-col min-w-0">
+              <ResizablePanel
+                defaultSize={85}
+                className="flex flex-col min-w-0"
+              >
                 <ResizablePanelGroup direction="vertical">
-                  <ResizablePanel defaultSize={70} minSize={20} className="flex flex-col min-h-0">
+                  <ResizablePanel
+                    defaultSize={70}
+                    minSize={20}
+                    className="flex flex-col min-h-0"
+                  >
                     <div className="flex flex-col h-full">
                       {openFiles.length > 0 ? (
                         <Tabs
@@ -454,17 +471,25 @@ export default function CodePilotPage() {
                         </Tabs>
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
-                           <div className="text-center">
+                          <div className="text-center">
                             <Code className="w-24 h-24 mx-auto text-muted-foreground/20" />
-                            <p className="mt-4 text-lg">Select a file to begin</p>
-                            <p className="text-sm text-muted-foreground">Or create a new file to start coding.</p>
+                            <p className="mt-4 text-lg">
+                              Select a file to begin
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Or create a new file to start coding.
+                            </p>
                           </div>
                         </div>
                       )}
                     </div>
                   </ResizablePanel>
                   <ResizableHandle withHandle />
-                  <ResizablePanel defaultSize={30} minSize={10} className="min-h-0">
+                  <ResizablePanel
+                    defaultSize={30}
+                    minSize={10}
+                    className="min-h-0"
+                  >
                     <Tabs
                       value={activeTab}
                       onValueChange={setActiveTab}

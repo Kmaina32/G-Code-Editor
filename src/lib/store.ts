@@ -12,6 +12,7 @@ interface StoreState {
   files: File[];
   openFileIds: string[];
   activeFileId: string | null;
+  isLoading: boolean;
 }
 
 interface StoreActions {
@@ -49,6 +50,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   files: [],
   openFileIds: [],
   activeFileId: null,
+  isLoading: true,
 
   loadInitialFiles: () => {
     const initialFiles = defaultFiles.map((file, index) => ({
@@ -59,6 +61,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       files: initialFiles,
       openFileIds: [initialFiles[0].id],
       activeFileId: initialFiles[0].id,
+      isLoading: false,
     });
   },
 
@@ -76,14 +79,19 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => ({
       files: state.files.filter((file) => file.id !== id),
       openFileIds: state.openFileIds.filter((fileId) => fileId !== id),
-      activeFileId: state.activeFileId === id ? state.openFileIds[0] || null : state.activeFileId,
+      activeFileId:
+        state.activeFileId === id
+          ? state.openFileIds[0] || null
+          : state.activeFileId,
     }));
   },
 
   renameFile: (id, newName) => {
     set((state) => ({
       files: state.files.map((file) =>
-        file.id === id ? { ...file, name: newName, language: getLanguage(newName) } : file
+        file.id === id
+          ? { ...file, name: newName, language: getLanguage(newName) }
+          : file
       ),
     }));
   },
