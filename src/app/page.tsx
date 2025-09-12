@@ -10,6 +10,10 @@ import {
   Sparkles,
   Trash2,
   X,
+  Plus,
+  Split,
+  PowerOff,
+  Square,
 } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -160,7 +164,7 @@ export default function CodePilotPage() {
   } = useStore();
   const [output, setOutput] = useState('');
   const [previewDoc, setPreviewDoc] = useState('');
-  const [activeTab, setActiveTab] = useState('console');
+  const [activeTab, setActiveTab] = useState('terminal');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -216,7 +220,7 @@ export default function CodePilotPage() {
       setIsExecuting(true);
       setOutput(`Running ${activeFile.name}...`);
       setPreviewDoc('');
-      setActiveTab('console');
+      setActiveTab('output');
       try {
         const result = await executeCode({
           language: activeFile.language,
@@ -468,7 +472,8 @@ export default function CodePilotPage() {
                   >
                     <TabsList>
                       <TabsTrigger value="preview">Preview</TabsTrigger>
-                      <TabsTrigger value="console">Console</TabsTrigger>
+                      <TabsTrigger value="output">Output</TabsTrigger>
+                      <TabsTrigger value="terminal">Terminal</TabsTrigger>
                     </TabsList>
                     <TabsContent
                       value="preview"
@@ -484,7 +489,7 @@ export default function CodePilotPage() {
                       </div>
                     </TabsContent>
                     <TabsContent
-                      value="console"
+                      value="output"
                       className="flex-grow mt-0 flex flex-col"
                     >
                       <div className="flex items-center gap-2 border-b px-2 py-1 bg-muted/50">
@@ -500,7 +505,7 @@ export default function CodePilotPage() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Clear Console</p>
+                            <p>Clear Output</p>
                           </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -537,6 +542,60 @@ export default function CodePilotPage() {
                       <pre className="p-4 text-sm bg-muted flex-grow overflow-auto font-mono text-foreground rounded-b-lg">
                         {output}
                       </pre>
+                    </TabsContent>
+                     <TabsContent
+                      value="terminal"
+                      className="flex-grow mt-0 flex flex-col"
+                    >
+                      <div className="flex items-center gap-2 border-b px-2 py-1 bg-muted/50">
+                         <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>New Terminal</p></TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Split className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Split Terminal</p></TooltipContent>
+                        </Tooltip>
+                         <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive">
+                              <PowerOff className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Kill Terminal</p></TooltipContent>
+                        </Tooltip>
+
+                        <div className="flex-grow" />
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Clear</p></TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive">
+                                <Square className="h-4 w-4" />
+                              </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Stop Execution</p></TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="p-4 text-sm bg-muted flex-grow overflow-auto font-mono text-foreground rounded-b-lg">
+                        <p>Terminal coming soon...</p>
+                        <p className="mt-2 text-muted-foreground"># This will be a fully interactive terminal.</p>
+                      </div>
                     </TabsContent>
                   </Tabs>
                 </ResizablePanel>
@@ -605,3 +664,5 @@ export default function CodePilotPage() {
     </TooltipProvider>
   );
 }
+
+    
