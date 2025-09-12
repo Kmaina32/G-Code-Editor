@@ -75,20 +75,35 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       language: getLanguage(name),
       content: '',
     };
-    set((state) => ({ files: [...state.files, newFile] }));
+    set((state) => ({
+      files: [...state.files, newFile],
+      openFileIds: [...state.openFileIds, newFile.id],
+      activeFileId: newFile.id,
+    }));
   },
 
   deleteFile: (id) => {
-    set((state) => ({
-      files: state.files.filter((file) => file.id !== id),
-      openFileIds: state.openFileIds.filter((fileId) => fileId !== id),
-      activeFileId:
-        state.activeFileId === id
-          ? state.openFileIds[0] || null
-          : state.activeFileId,
-    }));
+    set((state) => {
+      const newOpenFileIds = state.openFileIds.filter((fileId) => fileId !== id);
+      let newActiveFileId = state.activeFileId;
+      if (state.activeFileId === id) {
+        const closingIndex = state.openFileIds.findIndex(
+          (fileId) => fileId === id
+        );
+        if (newOpenFileIds.length > 0) {
+          newActiveFileId = newOpenFileIds[Math.max(0, closingIndex - 1)];
+        } else {
+          newActiveFileId = null;
+        }
+      }
+      return {
+        files: state.files.filter((file) => file.id !== id),
+        openFileIds: newOpenFileIds,
+        activeFileId: newActiveFileId,
+      };
+    });
   },
-  
+
   setFileToDelete: (id) => set({ fileToDelete: id }),
 
   renameFile: (id, newName) => {
@@ -136,5 +151,3 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set({ activeFileId: id });
   },
 }));
-
-    

@@ -155,23 +155,25 @@ export default function CodePilotPage() {
     openFileIds,
     activeFileId,
     loadInitialFiles,
-    addFile,
     updateFileContent,
     openFile,
     closeFile,
     setActiveFile,
     deleteFile,
+    fileToDelete,
+    setFileToDelete,
     isLoading,
   } = useStore();
   const [output, setOutput] = useState('');
-  const [terminalOutput, setTerminalOutput] = useState<string[]>(['Welcome to the CodePilot Terminal!']);
+  const [terminalOutput, setTerminalOutput] = useState<string[]>([
+    'Welcome to the CodePilot Terminal!',
+  ]);
   const [previewDoc, setPreviewDoc] = useState('');
   const [activeTab, setActiveTab] = useState('terminal');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [terminalInput, setTerminalInput] = useState('');
   const { toast } = useToast();
@@ -279,7 +281,7 @@ export default function CodePilotPage() {
     const newCommand = `$ ${terminalInput}`;
     setTerminalOutput((prev) => [...prev, newCommand]);
     setIsExecuting(true);
-    
+
     try {
       const result = await executeCode({
         command: terminalInput,
@@ -337,10 +339,10 @@ export default function CodePilotPage() {
   const handleClearConsole = () => {
     setOutput('');
   };
-  
+
   const handleClearTerminal = () => {
     setTerminalOutput(['Welcome to the CodePilot Terminal!']);
-  }
+  };
 
   const handleCopyConsole = () => {
     navigator.clipboard.writeText(output);
@@ -688,16 +690,24 @@ export default function CodePilotPage() {
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <ScrollArea className="flex-grow bg-muted rounded-b-lg" viewportRef={terminalViewport}>
+                      <ScrollArea
+                        className="flex-grow bg-muted rounded-b-lg"
+                        viewportRef={terminalViewport}
+                      >
                         <div className="p-4 text-sm font-mono text-foreground h-full">
                           <pre className="whitespace-pre-wrap">
                             {terminalOutput.join('\n')}
                           </pre>
-                          <form onSubmit={handleTerminalSubmit} className="flex gap-2">
+                          <form
+                            onSubmit={handleTerminalSubmit}
+                            className="flex gap-2"
+                          >
                             <span className="text-green-400 shrink-0">$</span>
                             <Input
                               value={terminalInput}
-                              onChange={(e) => setTerminalInput(e.target.value)}
+                              onChange={(e) =>
+                                setTerminalInput(e.target.value)
+                              }
                               className="bg-transparent border-none p-0 h-auto focus-visible:ring-0"
                               autoFocus
                               autoComplete="off"
@@ -774,5 +784,3 @@ export default function CodePilotPage() {
     </TooltipProvider>
   );
 }
-
-    
