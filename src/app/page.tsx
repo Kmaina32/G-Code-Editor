@@ -25,6 +25,7 @@ import { useStore, File } from '@/lib/store';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -55,6 +56,8 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -171,11 +174,18 @@ export default function CodePilotPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
+  const auth = getAuth(app);
 
   useEffect(() => {
     loadInitialFiles();
-  }, [loadInitialFiles]);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, [loadInitialFiles, auth]);
 
   const activeFile = useMemo(
     () => files.find((file) => file.id === activeFileId),
@@ -243,6 +253,11 @@ export default function CodePilotPage() {
     if (fileName) {
       addFile(fileName);
     }
+  };
+
+  const handleDeleteFile = (id: string) => {
+    deleteFile(id);
+    setFileToDelete(null);
   };
 
   const handleGenerateSuggestions = async () => {
@@ -317,7 +332,7 @@ export default function CodePilotPage() {
             </div>
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <UserNav />
+              <UserNav user={user} auth={auth} />
             </div>
           </header>
           <div className="flex flex-grow min-h-0">
@@ -349,7 +364,7 @@ export default function CodePilotPage() {
                       <SidebarMenuButton
                         onClick={() => openFile(file.id)}
                         isActive={activeFileId === file.id}
-                        className="justify-start w-full"
+                        className="justify-start w-full group/file-button"
                       >
                         <FileTypeIcon
                           language={file.language}
@@ -367,7 +382,7 @@ export default function CodePilotPage() {
                             className="absolute right-1 top-1.5 h-6 w-6 opacity-0 group-hover/menu-item:opacity-100"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteFile(file.id);
+                              setFileToDelete(file.id);
                             }}
                           >
                             <Trash2 className="h-3 w-3" />
@@ -549,12 +564,14 @@ export default function CodePilotPage() {
                         value="preview"
                         className="flex-grow bg-white mt-0 rounded-b-lg overflow-hidden"
                       >
-                        <iframe
-                          srcDoc={previewDoc}
-                          title="Preview"
-                          className="w-full h-full border-0"
-                          sandbox="allow-scripts allow-modals"
-                        />
+                        <div className="w-full h-full overflow-hidden">
+                          <iframe
+                            srcDoc={previewDoc}
+                            title="Preview"
+                            className="w-full h-full border-0"
+                            sandbox="allow-scripts allow-modals"
+                          />
+                        </div>
                       </TabsContent>
                       <TabsContent
                         value="console"
@@ -638,6 +655,32 @@ export default function CodePilotPage() {
             <AlertDialogFooter>
               <AlertDialogAction onClick={() => setShowSuggestions(false)}>
                 Close
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog
+          open={!!fileToDelete}
+          onOpenChange={() => setFileToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                file{' '}
+                <span className="font-bold">
+                  {files.find((f) => f.id === fileToDelete)?.name}
+                </span>
+                .
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setFileToDelete(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleDeleteFile(fileToDelete!)}>
+                Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
