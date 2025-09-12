@@ -1,6 +1,19 @@
 'use client';
 
-import { Code, Download, FilePlus, Play, Sparkles, Trash2, X } from 'lucide-react';
+import {
+  Code,
+  Download,
+  File as FileIcon,
+  FileCode,
+  FilePlus,
+  Paintbrush,
+  Play,
+  Sparkles,
+  Trash2,
+  X,
+  Braces,
+  Sigma,
+} from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import {
@@ -27,11 +40,32 @@ import JSZip from 'jszip';
 import { UserNav } from '@/components/user-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => <p>Loading editor...</p>,
 });
+
+function FileTypeIcon({ language, className }: { language: string; className?: string }) {
+  switch (language) {
+    case 'html':
+      return <FileCode className={className} />;
+    case 'css':
+      return <Paintbrush className={className} />;
+    case 'javascript':
+      return <Braces className={className} />;
+    case 'python':
+      return <Sigma className={className} />;
+    default:
+      return <FileIcon className={className} />;
+  }
+}
 
 export default function CodePilotPage() {
   const {
@@ -136,185 +170,226 @@ export default function CodePilotPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background font-sans">
-      <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
-        <div className="flex items-center gap-2">
-          <Code className="w-6 h-6 text-primary" />
-          <h1 className="text-xl font-bold font-headline">CodePilot</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          <UserNav />
-        </div>
-      </header>
-      <ResizablePanelGroup direction="horizontal" className="flex-grow">
-        <ResizablePanel defaultSize={15} minSize={10}>
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-2 border-b">
-              <h2 className="text-sm font-semibold">File Explorer</h2>
-              <Button variant="ghost" size="icon" onClick={handleAddNewFile}>
-                <FilePlus className="w-4 h-4" />
-              </Button>
-            </div>
-            <ScrollArea className="flex-grow">
-              <div className="p-2">
-                {files.map(file => (
-                  <div
-                    key={file.id}
-                    className={`flex items-center justify-between w-full text-left p-1.5 rounded-md text-sm hover:bg-accent ${activeFileId === file.id ? 'bg-accent' : ''}`}
-                  >
-                    <button
-                      onClick={() => openFile(file.id)}
-                      className="flex-grow text-left"
-                    >
-                      {file.name}
-                    </button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => deleteFile(file.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+    <TooltipProvider>
+      <div className="flex flex-col h-screen bg-background font-sans">
+        <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
+          <div className="flex items-center gap-2">
+            <Code className="w-6 h-6 text-primary" />
+            <h1 className="text-xl font-bold font-headline">CodePilot</h1>
           </div>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={85}>
-          <ResizablePanelGroup direction="vertical">
-            <ResizablePanel defaultSize={70} minSize={20}>
-              <div className="flex flex-col h-full">
-                {openFiles.length > 0 ? (
-                  <Tabs
-                    value={activeFileId || ''}
-                    onValueChange={setActiveFile}
-                    className="flex flex-col flex-grow"
-                  >
-                    <div className="flex items-center justify-between border-b pr-2">
-                      <TabsList className="bg-transparent border-none p-0 m-0">
-                        {openFiles.map(file => (
-                          <div key={file.id} className="relative group">
-                            <TabsTrigger
-                              value={file.id}
-                              className="h-10 pr-8 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none"
-                            >
-                              {file.name}
-                            </TabsTrigger>
-                            <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  closeFile(file.id);
-                                }}
-                                className="absolute top-1/2 right-1.5 -translate-y-1/2 p-0.5 rounded hover:bg-muted opacity-0 group-hover:opacity-100"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                          </div>
-                        ))}
-                      </TabsList>
-                       <div className="flex items-center gap-2">
-                        <Button
-                          onClick={handleGenerateSuggestions}
-                          size="sm"
-                          variant="outline"
-                          disabled={isGenerating || !activeFile}
-                        >
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          {isGenerating ? 'Generating...' : 'AI Suggest'}
-                        </Button>
-                        <Button
-                          onClick={handleExportProject}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Export
-                        </Button>
-                        <Button onClick={handleRunCode} size="sm" disabled={!activeFile}>
-                          <Play className="mr-2 h-4 w-4" />
-                          Run
-                        </Button>
-                      </div>
-                    </div>
-                    {openFiles.map(file => (
-                      <TabsContent
-                        key={file.id}
-                        value={file.id}
-                        className="flex-grow mt-0"
-                      >
-                        <Editor
-                          height="100%"
-                          language={file.language}
-                          value={file.content}
-                          onChange={content =>
-                            updateFileContent(file.id, content || '')
-                          }
-                          theme="vs-dark"
-                          options={{ minimap: { enabled: false } }}
-                        />
-                      </TabsContent>
-                    ))}
-                  </Tabs>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    Select a file to start editing or create a new one.
-                  </div>
-                )}
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <UserNav />
+          </div>
+        </header>
+        <ResizablePanelGroup direction="horizontal" className="flex-grow">
+          <ResizablePanel defaultSize={15} minSize={10}>
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between p-2 border-b">
+                <h2 className="text-sm font-semibold">File Explorer</h2>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleAddNewFile}>
+                      <FilePlus className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>New File</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={30} minSize={10}>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                <TabsList>
-                  <TabsTrigger value="preview">Preview</TabsTrigger>
-                  <TabsTrigger value="console">Console</TabsTrigger>
-                </TabsList>
-                <TabsContent value="preview" className="flex-grow bg-white mt-0">
-                  <iframe
-                    srcDoc={previewDoc}
-                    title="Preview"
-                    className="w-full h-full border-0"
-                    sandbox="allow-scripts allow-modals"
-                  />
-                </TabsContent>
-                <TabsContent value="console" className="flex-grow mt-0">
-                  <pre className="p-4 text-sm bg-muted h-full overflow-auto font-mono text-foreground">
-                    {output}
-                  </pre>
-                </TabsContent>
-              </Tabs>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
-      </ResizablePanelGroup>
-      <AlertDialog open={showSuggestions} onOpenChange={setShowSuggestions}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>AI Code Suggestions</AlertDialogTitle>
-            <AlertDialogDescription>
-              Here are some suggestions to improve your code:
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <ScrollArea className="h-60">
-            <ul className="space-y-2 p-4">
-              {suggestions.map((s, i) => (
-                <li key={i} className="text-sm p-2 bg-muted rounded">
-                  {s}
-                </li>
-              ))}
-            </ul>
-          </ScrollArea>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowSuggestions(false)}>
-              Close
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+              <ScrollArea className="flex-grow">
+                <div className="p-2 space-y-1">
+                  {files.map(file => (
+                    <div
+                      key={file.id}
+                      className={`flex items-center justify-between w-full text-left p-1.5 rounded-md text-sm group ${activeFileId === file.id ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}
+                    >
+                      <button
+                        onClick={() => openFile(file.id)}
+                        className="flex items-center gap-2 flex-grow text-left"
+                      >
+                        <FileTypeIcon language={file.language} className="w-4 h-4" />
+                        <span>{file.name}</span>
+                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                            onClick={() => deleteFile(file.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                         <TooltipContent>
+                          <p>Delete File</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={85}>
+            <ResizablePanelGroup direction="vertical">
+              <ResizablePanel defaultSize={70} minSize={20}>
+                <div className="flex flex-col h-full">
+                  {openFiles.length > 0 ? (
+                    <Tabs
+                      value={activeFileId || ''}
+                      onValueChange={setActiveFile}
+                      className="flex flex-col flex-grow"
+                    >
+                       <div className="flex items-center justify-between border-b bg-muted/30">
+                        <ScrollArea className="h-full">
+                          <TabsList className="bg-transparent border-none p-0 m-0">
+                            {openFiles.map(file => (
+                              <div key={file.id} className="relative group/tab">
+                                <TabsTrigger
+                                  value={file.id}
+                                  className="h-10 pr-8 border-b-2 border-r border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none data-[state=active]:bg-background"
+                                >
+                                  <FileTypeIcon language={file.language} className="w-4 h-4 mr-2" />
+                                  {file.name}
+                                </TabsTrigger>
+                                <button
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      closeFile(file.id);
+                                    }}
+                                    className="absolute top-1/2 right-1.5 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted-foreground/20 opacity-0 group-hover/tab:opacity-100"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                              </div>
+                            ))}
+                          </TabsList>
+                        </ScrollArea>
+                         <div className="flex items-center gap-2 p-2">
+                           <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={handleGenerateSuggestions}
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isGenerating || !activeFile}
+                                >
+                                  <Sparkles className="mr-2 h-4 w-4" />
+                                  {isGenerating ? 'Generating...' : 'AI Suggest'}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Get AI suggestions for the current file</p>
+                              </TooltipContent>
+                            </Tooltip>
+                             <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={handleExportProject}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Export
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Download project as a .zip file</p>
+                              </TooltipContent>
+                            </Tooltip>
+                             <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button onClick={handleRunCode} size="sm" disabled={!activeFile} className="bg-green-600 hover:bg-green-700 text-white">
+                                  <Play className="mr-2 h-4 w-4" />
+                                  Run
+                                </Button>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                <p>Run code and see preview</p>
+                              </TooltipContent>
+                            </Tooltip>
+                        </div>
+                      </div>
+                      {openFiles.map(file => (
+                        <TabsContent
+                          key={file.id}
+                          value={file.id}
+                          className="flex-grow mt-0"
+                        >
+                          <Editor
+                            height="100%"
+                            language={file.language}
+                            value={file.content}
+                            onChange={content =>
+                              updateFileContent(file.id, content || '')
+                            }
+                            theme="vs-dark"
+                            options={{ minimap: { enabled: false }, lineNumbers: 'on' }}
+                          />
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      Select a file to start editing or create a new one.
+                    </div>
+                  )}
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={30} minSize={10}>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                  <TabsList>
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                    <TabsTrigger value="console">Console</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="preview" className="flex-grow bg-white mt-0 rounded-b-lg overflow-hidden">
+                    <iframe
+                      srcDoc={previewDoc}
+                      title="Preview"
+                      className="w-full h-full border-0"
+                      sandbox="allow-scripts allow-modals"
+                    />
+                  </TabsContent>
+                  <TabsContent value="console" className="flex-grow mt-0">
+                    <pre className="p-4 text-sm bg-muted h-full overflow-auto font-mono text-foreground rounded-b-lg">
+                      {output}
+                    </pre>
+                  </TabsContent>
+                </Tabs>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+        <AlertDialog open={showSuggestions} onOpenChange={setShowSuggestions}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>AI Code Suggestions</AlertDialogTitle>
+              <AlertDialogDescription>
+                Here are some suggestions to improve your code:
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <ScrollArea className="h-60">
+              <ul className="space-y-2 p-4">
+                {suggestions.map((s, i) => (
+                  <li key={i} className="text-sm p-2 bg-muted rounded">
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setShowSuggestions(false)}>
+                Close
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </TooltipProvider>
   );
 }
