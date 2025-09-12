@@ -13,12 +13,14 @@ interface StoreState {
   openFileIds: string[];
   activeFileId: string | null;
   isLoading: boolean;
+  fileToDelete: string | null;
 }
 
 interface StoreActions {
   loadInitialFiles: () => void;
   addFile: (name: string) => void;
   deleteFile: (id: string) => void;
+  setFileToDelete: (id: string | null) => void;
   renameFile: (id: string, newName: string) => void;
   updateFileContent: (id: string, content: string) => void;
   openFile: (id: string) => void;
@@ -51,6 +53,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   openFileIds: [],
   activeFileId: null,
   isLoading: true,
+  fileToDelete: null,
 
   loadInitialFiles: () => {
     const initialFiles = defaultFiles.map((file, index) => ({
@@ -85,6 +88,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           : state.activeFileId,
     }));
   },
+  
+  setFileToDelete: (id) => set({ fileToDelete: id }),
 
   renameFile: (id, newName) => {
     set((state) => ({
@@ -131,3 +136,5 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set({ activeFileId: id });
   },
 }));
+
+    

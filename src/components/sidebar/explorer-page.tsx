@@ -5,11 +5,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useStore } from "@/lib/store";
 import { FilePlus, Trash2 } from "lucide-react";
 import { FileTypeIcon } from "@/app/page";
-import { useState } from "react";
 
 export default function ExplorerPage() {
-  const { files, openFile, activeFileId, addFile, deleteFile } = useStore();
-  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const { files, openFile, activeFileId, addFile, setFileToDelete } = useStore();
 
   const handleAddNewFile = () => {
     const fileName = prompt('Enter new file name (e.g., index.html, style.css, script.js, main.py)');
@@ -58,10 +56,7 @@ export default function ExplorerPage() {
                   className="absolute right-1 top-0.5 h-6 w-6 opacity-0 group-hover/menu-item:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
-                    // In a real app, you'd trigger the dialog here
-                    // For now, we'll just log it.
-                    console.log("Attempting to delete file:", file.id)
-                    deleteFile(file.id) // This still uses the direct delete from store
+                    setFileToDelete(file.id);
                   }}
                 >
                   <Trash2 className="h-3 w-3" />
@@ -77,3 +72,5 @@ export default function ExplorerPage() {
     </div>
   );
 }
+
+    

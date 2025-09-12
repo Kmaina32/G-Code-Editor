@@ -261,13 +261,36 @@ export default function CodePilotPage() {
     }
   };
 
-  const handleTerminalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleTerminalSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!terminalInput) return;
-    // For now, we'll just log it and clear.
-    // In the future, this will send the command to the backend.
-    console.log('Terminal command:', terminalInput);
-    setTerminalInput('');
+
+    setIsExecuting(true);
+    setOutput((prev) => `${prev}> ${terminalInput}\n`);
+    setActiveTab('output');
+
+    try {
+      const result = await executeCode({
+        command: terminalInput,
+        // For arbitrary commands, we might not have a relevant file.
+        // We'll pass empty values for now.
+        language: 'shell',
+        code: '',
+      });
+      setOutput((prev) => prev + result.output + '\n');
+    } catch (error) {
+      console.error('Error executing command:', error);
+      const errorMessage = `Error: ${error}\n`;
+      setOutput((prev) => prev + errorMessage);
+      toast({
+        variant: 'destructive',
+        title: 'Execution Error',
+        description: 'Could not run the command on the backend.',
+      });
+    } finally {
+      setIsExecuting(false);
+      setTerminalInput('');
+    }
   };
 
   const handleGenerateSuggestions = async () => {
@@ -734,3 +757,5 @@ export default function CodePilotPage() {
     </TooltipProvider>
   );
 }
+
+    
