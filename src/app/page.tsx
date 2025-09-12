@@ -4,15 +4,11 @@ import {
   Code,
   Download,
   File as FileIcon,
-  FileCode,
   FilePlus,
-  Paintbrush,
   Play,
   Sparkles,
   Trash2,
   X,
-  Braces,
-  Sigma,
 } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -71,13 +67,85 @@ function FileTypeIcon({
 }) {
   switch (language) {
     case 'html':
-      return <FileCode className={className} />;
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <path d="m10 13-1.1 2.2a.9.9 0 0 1-1.7-.1L6 13" />
+          <path d="m18 13-1.1 2.2a.9.9 0 0 1-1.7-.1L14 13" />
+          <path d="M12 19.5V13" />
+        </svg>
+      );
     case 'css':
-      return <Paintbrush className={className} />;
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <path d="m10.5 13.5.5-1.5 5.5 2" />
+          <path d="m9 16.5 5.5-1" />
+          <path d="m14.5 12.5.5 2 5.5-1" />
+          <path d="m8 19 5.5-1" />
+        </svg>
+      );
     case 'javascript':
-      return <Braces className={className} />;
+       return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <path d="M10 12h-1" />
+          <path d="M14 12h1" />
+          <path d="M10 18H9a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-1a1 1 0 0 0-1 1v-2a1 1 0 0 0 1-1h2a1 1 0 0 0 1 1v2a1 1 0 0 0 1 1h1" />
+          <path d="M14 18h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1Z" />
+        </svg>
+      );
     case 'python':
-      return <Sigma className={className} />;
+       return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <path d="M11.5 12.5h1" />
+          <path d="M15 16h-1a1.5 1.5 0 0 1-3 0h-1" />
+          <path d="M15 13a2 2 0 0 0-2-2H9v6" />
+          <path d="M12.5 19.5v-3" />
+          <path d="M9 16a2 2 0 0 0 2 2h2" />
+        </svg>
+      );
     default:
       return <FileIcon className={className} />;
   }
