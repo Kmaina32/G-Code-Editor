@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { suggestCodeImprovements } from '@/ai/flows/suggest-code-improvements';
+import { executeCode } from '@/ai/flows/execute-code';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import { UserNav } from '@/components/user-nav';
@@ -71,76 +72,76 @@ function FileTypeIcon({
       return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          viewBox="0 0 256 256"
           className={className}
         >
-          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <path d="m10 13-1.1 2.2a.9.9 0 0 1-1.7-.1L6 13" />
-          <path d="m18 13-1.1 2.2a.9.9 0 0 1-1.7-.1L14 13" />
-          <path d="M12 19.5V13" />
+          <path
+            fill="#E44D26"
+            d="m43.335 229.47l-21.35-24.238l24.322-218.64h185.385l24.323 218.64l-21.35 24.238l-92.665 25.842z"
+          />
+          <path
+            fill="#F16529"
+            d="M128 235.918V26.592h92.453l-20.93 188.163z"
+          />
+          <path
+            fill="#EBEBEB"
+            d="m128 92.652v33.72h54.04l4.24-47.583H128V26.59h96.693l-.934 10.45l-5.34 60.272l-5.338.1zM128 160.05v40.32l51.87-13.91l6.217-69.67h-48.74v33.72h15.2l-3.36 37.89z"
+          />
+          <path
+            fill="#FFFFFF"
+            d="m128 92.652H70.13l3.36 37.89H128v-33.72zm0 107.718v-40.32H79.25l-2.427-27.208H128v-33.72H48.42l.73 8.18l6.216 69.67l72.633 20.21z"
+          />
         </svg>
       );
     case 'css':
       return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          viewBox="0 0 256 256"
           className={className}
         >
-          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <path d="m10.5 13.5.5-1.5 5.5 2" />
-          <path d="m9 16.5 5.5-1" />
-          <path d="m14.5 12.5.5 2 5.5-1" />
-          <path d="m8 19 5.5-1" />
+          <path
+            fill="#264DE4"
+            d="m43.335 229.47l-21.35-24.238l24.322-218.64h185.385l24.323 218.64l-21.35 24.238l-92.665 25.842z"
+          />
+          <path
+            fill="#2965F1"
+            d="M128 235.918V26.592h92.453l-20.93 188.163z"
+          />
+          <path
+            fill="#EBEBEB"
+            d="M128 92.652v33.72h55.05l-4.73 52.98l-50.32 13.58v40.97l91.44-24.59l.52-5.83l12.45-139.42l.52-5.83H128z"
+          />
+          <path
+            fill="#FFFFFF"
+            d="m128 92.652H70.13l3.36 37.89H128v-33.72zm-.1 75.927l-.05.013l-41.28-11.1l-2.8-31.32h-34.5l6.216 69.67l72.633 20.21v-40.8l.05-.013z"
+          />
         </svg>
       );
     case 'javascript':
       return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          viewBox="0 0 256 256"
           className={className}
         >
-          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <path d="M10 12h-1" />
-          <path d="M14 12h1" />
-          <path d="M10 18H9a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-1a1 1 0 0 0-1 1v-2a1 1 0 0 0 1-1h2a1 1 0 0 0 1 1v2a1 1 0 0 0 1 1h1" />
-          <path d="M14 18h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1Z" />
+          <path fill="#F7DF1E" d="M0 0h256v256H0z" />
+          <path d="M48.23 212.434h28.328l16.89-28.8H113.1c11.373 0 19.53-4.133 24.44-12.4c4.91-8.266 7.364-19.12 7.364-32.56c0-13.68-.981-24.373-2.944-32.08c-1.962-7.706-5.89-13.453-11.78-17.24c-5.89-3.787-13.45-5.68-22.68-5.68c-8.433 0-15.658 1.57-21.666 4.71c-6.008 3.14-10.74 7.527-14.197 13.16c-3.456 5.633-5.184 12.013-5.184 19.14h31.28c0-3.88.588-7.066 1.764-9.56c1.176-2.493 2.943-4.34 5.303-5.54c2.36-1.2 5.093-1.8 8.192-1.8c4.524 0 7.953.882 10.287 2.646c2.333 1.765 3.5 4.555 3.5 8.37c0 3.045-.54 5.76-1.62 8.14c-1.08 2.38-2.646 4.29-4.706 5.72c-2.06 1.43-4.632 2.49-7.722 3.18c-3.09.69-6.932 1.29-11.522 1.8L83.33 148.1c-11.23.98-20.04 3.75-26.43 8.31c-6.39 4.56-9.58 11.23-9.58 20.01c0 8.01 2.29 14.54 6.87 19.6s10.89 7.6 18.91 7.6c6.08 0 11.63-1.26 16.66-3.78s9.02-6.19 11.95-11.01s4.39-10.45 4.39-16.92H98.9c0 5.23-.78 9.28-2.34 12.16c-1.56 2.88-3.9 5.02-7.02 6.42c-3.12 1.4-6.68 2.1-10.68 2.1c-5.89 0-10.28-.98-13.16-2.94c-2.88-1.96-4.32-5.18-4.32-9.66c0-4.04 1.26-7.13 3.78-9.28c2.52-2.15 6.3-3.66 11.34-4.54l16.89-2.94c11.09-2.06 19.3-5.59 24.62-10.6c5.32-5.02 7.98-11.73 7.98-20.13c0-7.31-1.37-13.69-4.1-19.14c-2.73-5.45-6.68-9.82-11.85-13.11c-5.17-3.29-11.23-4.93-18.19-4.93c-8.67 0-16.12 2.2-22.36 6.6c-6.24 4.4-10.89 10.37-13.96 17.92c-3.06 7.55-4.6 16.06-4.6 25.53c0 9.87 1.52 18.57 4.57 26.09c3.04 7.52 7.72 13.57 14.02 18.14c6.3 4.57 14.28 6.86 23.94 6.86c9.33 0 17.54-2.1 24.63-6.29c7.09-4.19 12.49-10.15 16.2-17.88s5.56-16.89 5.56-27.48H220.5v-31.04h-44.18V212.43h31.28v-31.01h-31.28v-29.01h31.28V212.43zM176.32 212.434h31.28V83.565h-31.28v128.87z" />
         </svg>
       );
     case 'python':
       return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          viewBox="0 0 256 256"
           className={className}
         >
-          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-          <path d="M11.5 12.5h1" />
-          <path d="M15 16h-1a1.5 1.5 0 0 1-3 0h-1" />
-          <path d="M15 13a2 2 0 0 0-2-2H9v6" />
-          <path d="M12.5 19.5v-3" />
-          <path d="M9 16a2 2 0 0 0 2 2h2" />
+          <path fill="#3776AB" d="M128 0h128v128H128z" />
+          <path fill="#FFD43B" d="M0 128h128v128H0z" />
+          <path
+            fill="#FFFFFF"
+            d="M110.18 64.9c0 4.7-3.8 8.5-8.5 8.5h-24.4v-17h24.4c4.7 0 8.5 3.8 8.5 8.5m-32.9-25.5h49.6c15.8 0 28.6 12.8 28.6 28.6v.7c0 10-5.3 18.8-13.3 24.1c10.5 4.4 17.7 14.8 17.7 26.6v7.2c0 15.8-12.8 28.6-28.6 28.6h-50.7V39.4zm54.3 64.1h-21.4v25.6h21.4c7.6 0 13.8-6.2 13.8-13.8v-8c0-7.6-6.2-13.8-13.8-13.8m101.42 86.9c0-4.7 3.8-8.5 8.5-8.5h24.4v17h-24.4c-4.7 0-8.5-3.8-8.5-8.5m32.9 25.5h-49.6c-15.8 0-28.6-12.8-28.6-28.6v-.7c0-10 5.3-18.8 13.3-24.1c-10.5-4.4-17.7-14.8-17.7-26.6v-7.2c0-15.8 12.8-28.6 28.6-28.6h50.7v116.7zm-54.3-64.1h21.4v-25.6h-21.4c-7.6 0-13.8 6.2-13.8 13.8v8c0 7.6 6.2 13.8 13.8 13.8"
+          />
         </svg>
       );
     default:
@@ -164,10 +165,11 @@ export default function CodePilotPage() {
   } = useStore();
   const [output, setOutput] = useState('');
   const [previewDoc, setPreviewDoc] = useState('');
-  const [activeTab, setActiveTab] = useState('preview');
+  const [activeTab, setActiveTab] = useState('console');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -186,7 +188,7 @@ export default function CodePilotPage() {
     [openFileIds, files]
   );
 
-  const handleRunCode = () => {
+  const handleRunCode = async () => {
     if (!activeFile) return;
 
     if (['html', 'css', 'javascript'].includes(activeFile.language)) {
@@ -208,10 +210,28 @@ export default function CodePilotPage() {
       setPreviewDoc(srcDoc);
       setOutput('');
       setActiveTab('preview');
-    } else if (activeFile.language === 'python') {
-      setOutput('Running Python code...\n(Execution is mocked on the client)');
+    } else {
+      setIsExecuting(true);
+      setOutput(`Running ${activeFile.name}...`);
       setPreviewDoc('');
       setActiveTab('console');
+      try {
+        const result = await executeCode({
+          language: activeFile.language,
+          code: activeFile.content,
+        });
+        setOutput(result.output);
+      } catch (error) {
+        console.error('Error executing code:', error);
+        setOutput(`Error executing code: ${error}`);
+        toast({
+          variant: 'destructive',
+          title: 'Execution Error',
+          description: 'Could not run the code on the backend.',
+        });
+      } finally {
+        setIsExecuting(false);
+      }
     }
   };
 
@@ -271,7 +291,7 @@ export default function CodePilotPage() {
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <div className="flex flex-col h-screen bg-background font-sans overflow-hidden">
+        <div className="flex flex-col h-screen bg-background font-sans overflow-x-hidden">
           <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
@@ -316,9 +336,11 @@ export default function CodePilotPage() {
                       >
                         <FileTypeIcon
                           language={file.language}
-                          className="w-4 h-4"
+                          className="w-4 h-4 mr-2"
                         />
-                        <span className="flex-grow text-left">{file.name}</span>
+                        <span className="flex-grow text-left truncate">
+                          {file.name}
+                        </span>
                       </SidebarMenuButton>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -344,7 +366,10 @@ export default function CodePilotPage() {
               </SidebarContent>
             </Sidebar>
 
-            <ResizablePanelGroup direction="horizontal" className="flex-grow min-w-0">
+            <ResizablePanelGroup
+              direction="horizontal"
+              className="flex-grow min-w-0"
+            >
               <ResizablePanel
                 defaultSize={85}
                 className="flex flex-col min-w-0"
@@ -355,12 +380,12 @@ export default function CodePilotPage() {
                     minSize={20}
                     className="flex flex-col min-h-0"
                   >
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full min-w-0">
                       {openFiles.length > 0 ? (
                         <Tabs
                           value={activeFileId || ''}
                           onValueChange={setActiveFile}
-                          className="flex flex-col flex-grow min-w-0"
+                          className="flex flex-col flex-grow min-h-0"
                         >
                           <div className="flex items-center justify-between border-b bg-muted/30">
                             <ScrollArea className="h-full w-full overflow-x-auto">
@@ -434,11 +459,15 @@ export default function CodePilotPage() {
                                   <Button
                                     onClick={handleRunCode}
                                     size="sm"
-                                    disabled={!activeFile}
+                                    disabled={isExecuting || !activeFile}
                                     className="bg-green-600 hover:bg-green-700 text-white"
                                   >
-                                    <Play className="mr-2 h-4 w-4" />
-                                    Run
+                                    {isExecuting ? (
+                                      <LoadingSpinner className="mr-2" />
+                                    ) : (
+                                      <Play className="mr-2 h-4 w-4" />
+                                    )}
+                                    {isExecuting ? 'Running...' : 'Run'}
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
