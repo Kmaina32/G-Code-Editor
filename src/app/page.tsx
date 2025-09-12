@@ -53,6 +53,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { AppSidebar } from '@/components/app-sidebar';
+import { Input } from '@/components/ui/input';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -171,6 +172,7 @@ export default function CodePilotPage() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [terminalInput, setTerminalInput] = useState('');
   const { toast } = useToast();
   const auth = getAuth(app);
 
@@ -257,6 +259,15 @@ export default function CodePilotPage() {
         setIsExecuting(false);
       }
     }
+  };
+
+  const handleTerminalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!terminalInput) return;
+    // For now, we'll just log it and clear.
+    // In the future, this will send the command to the backend.
+    console.log('Terminal command:', terminalInput);
+    setTerminalInput('');
   };
 
   const handleGenerateSuggestions = async () => {
@@ -561,58 +572,99 @@ export default function CodePilotPage() {
                         {output}
                       </pre>
                     </TabsContent>
-                     <TabsContent
+                    <TabsContent
                       value="terminal"
                       className="flex-grow mt-0 flex flex-col"
                     >
                       <div className="flex items-center gap-2 border-b px-2 py-1 bg-muted/50">
-                         <Tooltip>
+                        <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                            >
                               <Plus className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent><p>New Terminal</p></TooltipContent>
+                          <TooltipContent>
+                            <p>New Terminal</p>
+                          </TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                            >
                               <Split className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent><p>Split Terminal</p></TooltipContent>
+                          <TooltipContent>
+                            <p>Split Terminal</p>
+                          </TooltipContent>
                         </Tooltip>
-                         <Tooltip>
+                        <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive"
+                            >
                               <PowerOff className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent><p>Kill Terminal</p></TooltipContent>
+                          <TooltipContent>
+                            <p>Kill Terminal</p>
+                          </TooltipContent>
                         </Tooltip>
 
                         <div className="flex-grow" />
 
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent><p>Clear</p></TooltipContent>
+                          <TooltipContent>
+                            <p>Clear</p>
+                          </TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive">
-                                <Square className="h-4 w-4" />
-                              </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive"
+                            >
+                              <Square className="h-4 w-4" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent><p>Stop Execution</p></TooltipContent>
+                          <TooltipContent>
+                            <p>Stop Execution</p>
+                          </TooltipContent>
                         </Tooltip>
                       </div>
                       <div className="p-4 text-sm bg-muted flex-grow overflow-auto font-mono text-foreground rounded-b-lg">
-                        <p>Terminal coming soon...</p>
-                        <p className="mt-2 text-muted-foreground"># This will be a fully interactive terminal.</p>
+                        <div className="text-muted-foreground">
+                          Welcome to the CodePilot Terminal!
+                        </div>
+                        <form onSubmit={handleTerminalSubmit} className="flex gap-2 mt-2">
+                          <span className="text-green-400 shrink-0">$</span>
+                          <Input
+                            value={terminalInput}
+                            onChange={(e) => setTerminalInput(e.target.value)}
+                            className="bg-transparent border-none p-0 h-auto focus-visible:ring-0"
+                            autoFocus
+                            autoComplete="off"
+                          />
+                        </form>
                       </div>
                     </TabsContent>
                   </Tabs>
