@@ -19,7 +19,7 @@ export const defaultExtensions: Extension[] = [
     name: "Default Light",
     description: "The default CodePilot light theme.",
     type: "theme",
-    installed: false,
+    installed: true,
   },
   {
     id: "theme-matrix",
