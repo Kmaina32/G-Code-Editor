@@ -12,6 +12,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const ExecuteCodeInputSchema = z.object({
+  command: z.string().describe('The command to execute.'),
   code: z.string().describe('The code to execute.'),
   language: z.string().describe('The programming language of the code.'),
 });
@@ -39,10 +40,10 @@ const executeCodeFlow = ai.defineFlow(
     // execution environment (e.g., a Docker container, a VM, or a sandboxed function)
     // and stream the stdout/stderr back.
 
-    console.log(`Executing ${input.language} code:\n${input.code}`);
+    console.log(`Executing command: ${input.command}`);
 
     // For now, we'll just mock the output.
-    const mockedOutput = `Mock execution successful.\n\n[INFO] Language: ${input.language}\n[INFO] This is a mocked response.\n[TODO] Replace this flow with a real code execution backend.`;
+    const mockedOutput = `Mock execution successful for command: "${input.command}"\n\n[INFO] Language: ${input.language}\n[INFO] This is a mocked response.\n[TODO] Replace this flow with a real code execution backend.`;
 
     return {
       output: mockedOutput,

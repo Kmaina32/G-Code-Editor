@@ -194,10 +194,26 @@ export default function CodePilotPage() {
     [openFileIds, files]
   );
 
+  const getCommandForFile = (file: File) => {
+    switch (file.language) {
+      case 'python':
+        return `python ${file.name}`;
+      case 'javascript':
+        return `node ${file.name}`;
+      case 'html':
+      case 'css':
+        return 'preview';
+      default:
+        return `run ${file.name}`;
+    }
+  };
+
   const handleRunCode = async () => {
     if (!activeFile) return;
 
-    if (['html', 'css', 'javascript'].includes(activeFile.language)) {
+    const command = getCommandForFile(activeFile);
+
+    if (command === 'preview') {
       const htmlFile = files.find((f) => f.name.endsWith('.html'));
       const cssFile = files.find((f) => f.name.endsWith('.css'));
       const jsFile = files.find((f) => f.name.endsWith('.js'));
@@ -218,18 +234,20 @@ export default function CodePilotPage() {
       setActiveTab('preview');
     } else {
       setIsExecuting(true);
-      setOutput(`Running ${activeFile.name}...`);
+      setOutput(`> ${command}\n`);
       setPreviewDoc('');
       setActiveTab('output');
       try {
         const result = await executeCode({
+          command: command,
           language: activeFile.language,
           code: activeFile.content,
         });
-        setOutput(result.output);
+        setOutput((prev) => prev + result.output);
       } catch (error) {
         console.error('Error executing code:', error);
-        setOutput(`Error executing code: ${error}`);
+        const errorMessage = `Error executing code: ${error}`;
+        setOutput((prev) => prev + errorMessage);
         toast({
           variant: 'destructive',
           title: 'Execution Error',
@@ -664,5 +682,3 @@ export default function CodePilotPage() {
     </TooltipProvider>
   );
 }
-
-    
