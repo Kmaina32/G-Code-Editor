@@ -1,16 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { Folder, Search, GitBranch, Settings } from "lucide-react";
+import { Folder, Search, GitBranch, Settings, Puzzle } from "lucide-react";
 import ExplorerPage from "./sidebar/explorer-page";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { cn } from "@/lib/utils";
+import ExtensionsPage from "./sidebar/extensions-page";
 
-const pages: Record<string, { component: JSX.Element; icon: React.ReactNode, title: string }> = {
-  explorer: { component: <ExplorerPage />, icon: <Folder />, title: "File Explorer" },
+const pages: Record<
+  string,
+  { component: JSX.Element; icon: React.ReactNode; title: string }
+> = {
+  explorer: {
+    component: <ExplorerPage />,
+    icon: <Folder />,
+    title: "File Explorer",
+  },
   search: { component: <div>Search Page</div>, icon: <Search />, title: "Search" },
   git: { component: <div>Git Page</div>, icon: <GitBranch />, title: "Source Control" },
-  settings: { component: <div>Settings Page</div>, icon: <Settings />, title: "Settings" },
+  extensions: {
+    component: <ExtensionsPage />,
+    icon: <Puzzle />,
+    title: "Extensions",
+  },
+  settings: {
+    component: <div>Settings Page</div>,
+    icon: <Settings />,
+    title: "Settings",
+  },
 };
 
 export function AppSidebar() {
@@ -30,8 +47,8 @@ export function AppSidebar() {
               <button
                 onClick={() => handleIconClick(key)}
                 className={cn(
-                    "p-2 rounded-md hover:bg-accent",
-                    activePage === key && "bg-accent text-accent-foreground"
+                  "p-2 rounded-md hover:bg-accent",
+                  activePage === key && "bg-accent text-accent-foreground"
                 )}
               >
                 {icon}

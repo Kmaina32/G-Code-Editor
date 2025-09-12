@@ -40,7 +40,6 @@ import { executeCode } from '@/ai/flows/execute-code';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import { UserNav } from '@/components/user-nav';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { useToast } from '@/hooks/use-toast';
 import {
   Tooltip,
@@ -426,7 +425,6 @@ export default function CodePilotPage() {
                 </TooltipContent>
               </Tooltip>
             </div>
-            <ThemeToggle />
             <UserNav user={user} auth={auth} />
           </div>
         </header>

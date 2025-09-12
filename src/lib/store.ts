@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { defaultFiles } from './default-files';
+import { defaultExtensions, Extension } from './extensions';
 
 export interface File {
   id: string;
@@ -14,6 +15,7 @@ interface StoreState {
   activeFileId: string | null;
   isLoading: boolean;
   fileToDelete: string | null;
+  extensions: Extension[];
 }
 
 interface StoreActions {
@@ -26,6 +28,8 @@ interface StoreActions {
   openFile: (id: string) => void;
   closeFile: (id: string) => void;
   setActiveFile: (id: string) => void;
+  installExtension: (id: string) => void;
+  uninstallExtension: (id: string) => void;
 }
 
 const getLanguage = (fileName: string): string => {
@@ -54,6 +58,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   activeFileId: null,
   isLoading: true,
   fileToDelete: null,
+  extensions: defaultExtensions,
 
   loadInitialFiles: () => {
     const initialFiles = defaultFiles.map((file, index) => ({
@@ -149,5 +154,28 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
   setActiveFile: (id) => {
     set({ activeFileId: id });
+  },
+
+  installExtension: (id: string) => {
+    set((state) => ({
+      extensions: state.extensions.map((ext) => {
+        if (ext.id === id) {
+          return { ...ext, installed: true };
+        }
+        // If it's a theme, uninstall other themes
+        if (ext.type === 'theme' && ext.id !== id) {
+          return { ...ext, installed: false };
+        }
+        return ext;
+      }),
+    }));
+  },
+
+  uninstallExtension: (id: string) => {
+    set((state) => ({
+      extensions: state.extensions.map((ext) =>
+        ext.id === id ? { ...ext, installed: false } : ext
+      ),
+    }));
   },
 }));
