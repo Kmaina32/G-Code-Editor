@@ -278,7 +278,7 @@ export default function CodePilotPage() {
                           className="flex flex-col flex-grow min-w-0"
                         >
                           <div className="flex items-center justify-between border-b bg-muted/30">
-                            <ScrollArea className="h-full overflow-x-auto">
+                            <ScrollArea className="h-full w-full overflow-x-auto">
                               <TabsList className="flex w-max bg-transparent border-none p-0 m-0">
                                 {openFiles.map((file) => (
                                   <div
@@ -386,8 +386,11 @@ export default function CodePilotPage() {
                         </Tabs>
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
-                          Select a file to start editing or create a new
-                          one.
+                           <div className="text-center">
+                            <Code className="w-24 h-24 mx-auto text-muted-foreground/20" />
+                            <p className="mt-4 text-lg">Select a file to begin</p>
+                            <p className="text-sm text-muted-foreground">Or create a new file to start coding.</p>
+                          </div>
                         </div>
                       )}
                     </div>
