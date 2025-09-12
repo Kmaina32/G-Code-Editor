@@ -205,7 +205,7 @@ export default function CodePilotPage() {
               <UserNav />
             </div>
           </header>
-          <div className="flex flex-grow">
+          <div className="flex flex-grow min-h-0">
             <Sidebar>
               <SidebarContent>
                 <SidebarHeader>
@@ -266,7 +266,7 @@ export default function CodePilotPage() {
               </SidebarContent>
             </Sidebar>
 
-            <ResizablePanelGroup direction="horizontal" className="flex-grow">
+            <ResizablePanelGroup direction="horizontal" className="flex-grow min-w-0">
               <ResizablePanel defaultSize={85}>
                 <ResizablePanelGroup direction="vertical">
                   <ResizablePanel defaultSize={70} minSize={20}>
