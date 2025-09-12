@@ -331,6 +331,59 @@ export default function CodePilotPage() {
               <h1 className="text-xl font-bold font-headline">CodePilot</h1>
             </div>
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleGenerateSuggestions}
+                      size="sm"
+                      variant="outline"
+                      disabled={isGenerating || !activeFile}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {isGenerating ? 'Generating...' : 'AI Suggest'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Get AI suggestions for the current file</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleExportProject}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download project as a .zip file</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleRunCode}
+                      size="sm"
+                      disabled={isExecuting || !activeFile}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {isExecuting ? (
+                        <LoadingSpinner className="mr-2" />
+                      ) : (
+                        <Play className="mr-2 h-4 w-4" />
+                      )}
+                      {isExecuting ? 'Running...' : 'Run'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Run code and see preview</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <ThemeToggle />
               <UserNav user={user} auth={auth} />
             </div>
@@ -450,63 +503,6 @@ export default function CodePilotPage() {
                                 ))}
                               </TabsList>
                             </ScrollArea>
-                            <div className="flex items-center gap-2 p-2 shrink-0">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={handleGenerateSuggestions}
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={isGenerating || !activeFile}
-                                  >
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    {isGenerating
-                                      ? 'Generating...'
-                                      : 'AI Suggest'}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>
-                                    Get AI suggestions for the current file
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={handleExportProject}
-                                    size="sm"
-                                    variant="outline"
-                                  >
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Export
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Download project as a .zip file</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={handleRunCode}
-                                    size="sm"
-                                    disabled={isExecuting || !activeFile}
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                  >
-                                    {isExecuting ? (
-                                      <LoadingSpinner className="mr-2" />
-                                    ) : (
-                                      <Play className="mr-2 h-4 w-4" />
-                                    )}
-                                    {isExecuting ? 'Running...' : 'Run'}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Run code and see preview</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
                           </div>
                           {openFiles.map((file) => (
                             <TabsContent
