@@ -2,6 +2,7 @@
 
 import {
   Code,
+  Copy,
   Download,
   File as FileIcon,
   FilePlus,
@@ -276,6 +277,22 @@ export default function CodePilotPage() {
     saveAs(content, 'codepilot-project.zip');
   };
 
+  const handleClearConsole = () => {
+    setOutput('');
+  };
+
+  const handleCopyConsole = () => {
+    navigator.clipboard.writeText(output);
+    toast({
+      title: 'Copied to clipboard',
+    });
+  };
+
+  const handleDownloadLogs = () => {
+    const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
+    saveAs(blob, `codepilot-logs-${new Date().toISOString()}.txt`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
@@ -541,9 +558,56 @@ export default function CodePilotPage() {
                       </TabsContent>
                       <TabsContent
                         value="console"
-                        className="flex-grow mt-0"
+                        className="flex-grow mt-0 flex flex-col"
                       >
-                        <pre className="p-4 text-sm bg-muted h-full overflow-auto font-mono text-foreground rounded-b-lg">
+                        <div className="flex items-center gap-2 border-b px-2 py-1 bg-muted/50">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleClearConsole}
+                                className="h-6 w-6"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Clear Console</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleCopyConsole}
+                                className="h-6 w-6"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Copy Output</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleDownloadLogs}
+                                className="h-6 w-6"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Download Logs</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <pre className="p-4 text-sm bg-muted flex-grow overflow-auto font-mono text-foreground rounded-b-lg">
                           {output}
                         </pre>
                       </TabsContent>
