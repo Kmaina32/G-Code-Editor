@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
-import { FileTypeIcon } from "@/app/page";
+import { FileTypeIcon } from "@/components/codepilot-page";
 import { ScrollArea } from "../ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { GitCommit } from "lucide-react";

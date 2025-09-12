@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useStore } from "@/lib/store";
 import { FilePlus, Pencil, Trash2 } from "lucide-react";
-import { FileTypeIcon } from "@/app/page";
+import { FileTypeIcon } from "@/components/codepilot-page";
 import { useState } from "react";
 import { Input } from "../ui/input";
 
