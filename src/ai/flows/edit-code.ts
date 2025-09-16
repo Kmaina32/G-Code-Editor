@@ -10,7 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import {useStore} from '@/lib/store';
 
 const FileSchema = z.object({
   path: z.string().describe('The full path of the file.'),
@@ -39,8 +38,8 @@ export type EditCodeOutput = z.infer<typeof EditCodeOutputSchema>;
 
 export async function editCode(
   input: EditCodeInput
-): Promise<void> {
-  await editCodeFlow(input);
+): Promise<EditCodeOutput> {
+  return await editCodeFlow(input);
 }
 
 const editCodeSystemPrompt = `You are an expert AI software engineer specializing in Next.js, React, Tailwind CSS, and shadcn/ui.
@@ -90,30 +89,12 @@ const editCodeFlow = ai.defineFlow(
   async (input) => {
     const { output } = await editCodePrompt(input);
 
-    // This is a server-side flow, so we can't directly call the store.
-    // Instead, we will rely on the client-side to handle the state update.
-    // For now, we will just return the output.
-    // In a real application, you might use a webhook, a websocket, or another
-    // mechanism to push the update to the client.
+    if (!output) {
+      throw new Error('The AI model did not return a valid output.');
+    }
     
-    // In this specific architecture, the client is polling or waiting for the
-    // flow to complete, and the return value is sent back.
-    // We will update the client-side store when the flow promise resolves.
-    
-    // The calling function `editCode` is an async function that the client
-    // awaits. When this flow resolves, the client gets the output and
-    // updates its state. We will use a "fire-and-forget" approach from
-    // the client, and the AI response will be pushed to the store from here.
-    // ... or not. The current setup is that the client-side `ai-coder-page`
-    // calls this flow and then handles the response. Let's stick with that.
-    
-    // The client-side will call `addAiCoderMessage` with the output.
-    
-    useStore.getState().addAiCoderMessage({
-      role: 'ai',
-      content: output!,
-    });
-
-    return output!;
+    // The client-side will call `addAiCoderMessage` with the output
+    // after this flow resolves successfully.
+    return output;
   }
 );
