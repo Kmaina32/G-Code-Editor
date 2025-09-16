@@ -17,7 +17,7 @@ const FileSchema = z.object({
 });
 
 const EditCodeInputSchema = z.object({
-  prompt: z.string().describe('The user\'s request for code changes.'),
+  prompt: z.string().describe("The user's request for code changes."),
   files: z.array(FileSchema).describe('An array of all files in the project.'),
 });
 export type EditCodeInput = z.infer<typeof EditCodeInputSchema>;
@@ -30,6 +30,7 @@ const FileChangeSchema = z.object({
 const EditCodeOutputSchema = z.object({
   description: z.string().describe('A concise summary of the overall changes being made.'),
   changes: z.array(FileChangeSchema).describe('An array of file modifications.'),
+  commitMessage: z.string().describe('A concise, imperative-mood commit message summarizing the changes.'),
 });
 export type EditCodeOutput = z.infer<typeof EditCodeOutputSchema>;
 
@@ -44,6 +45,7 @@ const editCodeSystemPrompt = `You are an expert AI software engineer specializin
 Your task is to modify the user's project based on their instructions.
 You have access to the entire file system of the project.
 You MUST respond with the complete, final content for every file you change. Do not provide diffs, partial snippets, or explanations.
+You MUST generate a concise, imperative-mood commit message that summarizes the changes you made.
 Your response MUST be in the JSON format defined by the output schema.
 
 Key guidelines:

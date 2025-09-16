@@ -39,6 +39,11 @@ export interface EditorSettings {
   fontSize: number;
 }
 
+export interface AiCoderMessage {
+  role: 'user' | 'ai';
+  content: string | any; // 'any' for structured AI responses
+}
+
 // Helper function to flatten the tree into a list of files
 const flattenTree = (items: FileSystemItem[]): File[] => {
   let files: File[] = [];
@@ -168,6 +173,7 @@ interface StoreState {
   activeThemeId: string;
   userId: string | null;
   projectName: string;
+  aiCoderHistory: AiCoderMessage[];
 }
 
 interface StoreActions {
@@ -191,6 +197,7 @@ interface StoreActions {
   setActiveThemeId: (id: string) => void;
   viewCommit: (commitId: string) => void;
   toggleFolder: (id: string) => void;
+  addAiCoderMessage: (message: AiCoderMessage) => void;
   getFiles: () => File[];
   findFile: (id: string) => File | undefined;
   setIsGenerating: (isGenerating: boolean) => void;
@@ -223,7 +230,7 @@ const getLanguage = (fileName: string): string => {
 const useStore = create<StoreState & StoreActions>((set, get) => {
     
     const saveProject = async () => {
-        const { userId, fileTree, projectName, commits, extensions, editorSettings, activeThemeId } = get();
+        const { userId, fileTree, projectName, commits, extensions, editorSettings, activeThemeId, aiCoderHistory } = get();
         if (!userId) return;
         try {
             const projectRef = doc(db, 'projects', userId);
@@ -233,7 +240,8 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
                 commits: JSON.parse(JSON.stringify(commits)),
                 extensions: JSON.parse(JSON.stringify(extensions)),
                 editorSettings: JSON.parse(JSON.stringify(editorSettings)),
-                activeThemeId: activeThemeId
+                activeThemeId: activeThemeId,
+                aiCoderHistory: JSON.parse(JSON.stringify(aiCoderHistory)),
             }
             await setDoc(projectRef, projectData);
         } catch (error) {
@@ -253,6 +261,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
         fontSize: 14,
       },
       commits: [],
+      aiCoderHistory: [],
       activeThemeId: 'neon-future',
       userId: null,
       projectName: 'My Project',
@@ -276,6 +285,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
               extensions: projectData.extensions || defaultExtensions,
               editorSettings: projectData.editorSettings || { fontSize: 14 },
               activeThemeId: projectData.activeThemeId || 'neon-future',
+              aiCoderHistory: projectData.aiCoderHistory || [],
               openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
               activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
               isLoading: false,
@@ -289,6 +299,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
                 extensions: defaultExtensions,
                 editorSettings: { fontSize: 14 },
                 activeThemeId: 'neon-future',
+                aiCoderHistory: [],
                 openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
                 activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
                 isLoading: false,
@@ -310,6 +321,11 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
     
       setActiveThemeId: (id: string) => {
         set({ activeThemeId: id });
+        get().saveProject();
+      },
+
+      addAiCoderMessage: (message) => {
+        set(state => ({ aiCoderHistory: [...state.aiCoderHistory, message]}));
         get().saveProject();
       },
     
