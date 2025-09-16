@@ -4,13 +4,11 @@ const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
   <title>CodePilot Demo</title>
-  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <h1>Welcome to CodePilot!</h1>
   <p>This is a simple demo. Edit the files and click "Run" to see your changes.</p>
   <button id="myButton">Click Me</button>
-  <script src="script.js"></script>
 </body>
 </html>
 `;
