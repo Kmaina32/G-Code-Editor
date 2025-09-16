@@ -23,6 +23,8 @@ import {
   Settings,
   PanelLeft,
   ChevronRight,
+  GitBranchIcon,
+  LoaderCircle,
 } from 'lucide-react';
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
@@ -64,6 +66,7 @@ import 'xterm/css/xterm.css';
 import type { TerminalComponent as TerminalComponentType } from '@/components/terminal';
 import { cn } from '@/lib/utils';
 import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
+import type { editor } from 'monaco-editor';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -193,6 +196,55 @@ function Breadcrumbs({ path }: { path: string }) {
   );
 }
 
+function StatusBar({
+  file,
+  cursorPosition,
+  isAiGenerating,
+}: {
+  file: File | undefined;
+  cursorPosition: { line: number; column: number };
+  isAiGenerating: boolean;
+}) {
+  const languageMap: Record<string, string> = {
+    javascript: 'JavaScript',
+    python: 'Python',
+    html: 'HTML',
+    css: 'CSS',
+    json: 'JSON',
+    typescript: 'TypeScript',
+    markdown: 'Markdown',
+    plaintext: 'Plain Text',
+  };
+
+  return (
+    <div className="flex items-center justify-between h-8 px-4 text-xs bg-muted/50 border-t text-muted-foreground shrink-0">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="h-auto p-0 text-xs gap-1 hover:bg-transparent">
+          <GitBranchIcon className="w-3.5 h-3.5" />
+          main
+        </Button>
+        {isAiGenerating && (
+          <div className='flex items-center gap-1.5'>
+            <LoaderCircle className="w-3.5 h-3.5 animate-spin"/>
+            <span>AI is thinking...</span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-4">
+        {file && (
+          <>
+            <span>
+              Ln {cursorPosition.line}, Col {cursorPosition.column}
+            </span>
+            <span>UTF-8</span>
+            <span>{languageMap[file.language] || file.language}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CodePilotPageInternal() {
   const {
     openFileIds,
@@ -209,6 +261,7 @@ function CodePilotPageInternal() {
     findFile,
     projectName,
     activeThemeId,
+    isGenerating,
   } = useStore();
 
   const files = getFiles();
@@ -225,6 +278,8 @@ function CodePilotPageInternal() {
   const pyodideRef = useRef<any>(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
   const [activeSidebarPage, setActiveSidebarPage] = useState('explorer');
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const [cursorPosition, setCursorPosition] = useState({ line: 1, column: 1 });
 
   const { toggleSidebar } = useSidebar();
 
@@ -514,6 +569,19 @@ function CodePilotPageInternal() {
     saveAs(blob, `codepilot-logs-${new Date().toISOString()}.txt`);
   };
 
+  const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
+    editorRef.current = editor;
+    editor.onDidChangeCursorPosition(() => {
+      const position = editor.getPosition();
+      if (position) {
+        setCursorPosition({
+          line: position.lineNumber,
+          column: position.column,
+        });
+      }
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
@@ -635,6 +703,7 @@ function CodePilotPageInternal() {
                                 updateFileContent(file.id, content || '')
                               }
                               theme={activeThemeId.includes('light') ? 'vs-light' : 'vs-dark'}
+                              onMount={handleEditorDidMount}
                               options={{
                                 minimap: { enabled: false },
                                 lineNumbers: 'on',
@@ -870,6 +939,11 @@ function CodePilotPageInternal() {
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>
+        <StatusBar 
+          file={activeFile} 
+          cursorPosition={cursorPosition}
+          isAiGenerating={isGenerating}
+        />
       </div>
       <AlertDialog
         open={!!fileToDelete}
