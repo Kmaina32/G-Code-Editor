@@ -619,13 +619,13 @@ function CodePilotPageInternal() {
             direction="horizontal"
             className="flex-grow min-w-0"
           >
-            <ResizablePanel defaultSize={15} minSize={10} maxSize={25}>
+            <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
               <AppSidebar activePage={activeSidebarPage} onPageChange={setActiveSidebarPage} />
             </ResizablePanel>
             <ResizableHandle withHandle />
 
             <ResizablePanel
-              defaultSize={85}
+              defaultSize={75}
               className="flex flex-col min-w-0"
             >
               <ResizablePanelGroup direction="vertical">
