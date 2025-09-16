@@ -253,9 +253,17 @@ export function CodePilotPage() {
     };
     initPyodide();
 
+    const handleIframeMessages = (event: MessageEvent) => {
+      if (event.data && event.data.source === 'iframe') {
+        setOutput((prev) => `${prev}[PREVIEW] ${event.data.message}\n`);
+      }
+    };
+    window.addEventListener('message', handleIframeMessages);
+
     return () => {
       unsubscribe();
       jsWorkerRef.current?.terminate();
+      window.removeEventListener('message', handleIframeMessages);
     };
   }, [loadInitialFiles, auth]);
 
@@ -276,12 +284,12 @@ export function CodePilotPage() {
             jsFile?.content
               ? `
             // Web Worker based console for preview
-            const workerConsole = {
+            const iframeConsole = {
               log: (...args) => window.parent.postMessage({ source: 'iframe', type: 'log', message: args.join(' ') }, '*'),
               error: (...args) => window.parent.postMessage({ source: 'iframe', type: 'error', message: args.join(' ') }, '*'),
               warn: (...args) => window.parent.postMessage({ source: 'iframe', type: 'warn', message: args.join(' ') }, '*'),
             };
-            window.console = { ...window.console, ...workerConsole };
+            window.console = { ...window.console, ...iframeConsole };
             
             try {
               ${jsFile.content}
@@ -903,5 +911,7 @@ export function CodePilotPage() {
     </TooltipProvider>
   );
 }
+
+    
 
     
