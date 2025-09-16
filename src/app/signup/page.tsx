@@ -84,13 +84,17 @@ export default function SignupPage() {
     try {
       await signInWithPopup(auth, provider);
       router.push('/');
-    } catch (error) {
-      console.error('Google Sign-In Error', error);
-      toast({
-        variant: 'destructive',
-        title: 'Google Sign-Up Failed',
-        description: 'Could not sign up with Google. Please try again.',
-      });
+    } catch (error: any) {
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.log('Google Sign-Up popup closed by user.');
+      } else {
+        console.error('Google Sign-In Error', error);
+        toast({
+          variant: 'destructive',
+          title: 'Google Sign-Up Failed',
+          description: 'Could not sign up with Google. Please try again.',
+        });
+      }
     } finally {
         setIsLoading(false);
     }
