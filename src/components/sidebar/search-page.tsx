@@ -36,6 +36,14 @@ export default function SearchPage() {
     });
     setResults(newResults);
   };
+  
+  const handleSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newSearchTerm = e.target.value;
+      setSearchTerm(newSearchTerm);
+      if(!newSearchTerm) {
+          setResults({});
+      }
+  }
 
   const fileCount = Object.keys(results).length;
   const matchCount = Object.values(results).reduce((sum, matches) => sum + matches.length, 0);
@@ -50,7 +58,7 @@ export default function SearchPage() {
           type="text"
           placeholder="Search in files..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearchTermChange}
         />
       </form>
       {searchTerm && (
