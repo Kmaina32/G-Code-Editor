@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -10,11 +11,11 @@ import {
 } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import { useTheme } from 'next-themes';
 
 interface TerminalComponentProps {
   onCommand: (command: string) => void;
   disabled?: boolean;
+  theme?: string;
 }
 
 export interface TerminalComponent {
@@ -71,12 +72,11 @@ const solarizedLight = {
 export const TerminalComponent = forwardRef<
   TerminalComponent,
   TerminalComponentProps
->(({ onCommand, disabled = false }, ref) => {
+>(({ onCommand, disabled = false, theme = 'dark' }, ref) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const term = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const command = useRef('');
-  const { resolvedTheme } = useTheme();
 
   const handleResize = useCallback(() => {
     fitAddon.current?.fit();
@@ -84,7 +84,7 @@ export const TerminalComponent = forwardRef<
 
   useEffect(() => {
     if (terminalRef.current && !term.current) {
-      const isDark = resolvedTheme === 'dark';
+      const isDark = !theme.includes('light');
       const newTerm = new Terminal({
         cursorBlink: true,
         fontFamily: 'monospace',
@@ -137,15 +137,15 @@ export const TerminalComponent = forwardRef<
     return () => {
         window.removeEventListener('resize', handleResize);
     }
-  }, [disabled, onCommand, handleResize, resolvedTheme]);
+  }, [disabled, onCommand, handleResize, theme]);
 
   useEffect(() => {
     if (term.current) {
-      const isDark = resolvedTheme === 'dark';
+      const isDark = !theme.includes('light');
       term.current.options.theme = isDark ? solarizedDark : solarizedLight;
       handleResize();
     }
-  }, [resolvedTheme, handleResize]);
+  }, [theme, handleResize]);
 
   useImperativeHandle(ref, () => ({
     write: (data: string) => {
@@ -171,5 +171,3 @@ export const TerminalComponent = forwardRef<
 });
 
 TerminalComponent.displayName = 'TerminalComponent';
-
-    

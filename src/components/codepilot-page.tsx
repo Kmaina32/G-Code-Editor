@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -207,6 +208,7 @@ function CodePilotPageInternal() {
     getFiles,
     findFile,
     projectName,
+    activeThemeId,
   } = useStore();
 
   const files = getFiles();
@@ -632,7 +634,7 @@ function CodePilotPageInternal() {
                               onChange={(content) =>
                                 updateFileContent(file.id, content || '')
                               }
-                              theme={activeSidebarPage === 'theme-light' ? 'vs-light' : 'vs-dark'}
+                              theme={activeThemeId.includes('light') ? 'vs-light' : 'vs-dark'}
                               options={{
                                 minimap: { enabled: false },
                                 lineNumbers: 'on',
@@ -859,6 +861,7 @@ function CodePilotPageInternal() {
                         ref={terminalRef}
                         onCommand={handleTerminalSubmit}
                         disabled={isExecuting}
+                        theme={activeThemeId}
                       />
                     </TabsContent>
                   </Tabs>
