@@ -652,7 +652,7 @@ export function CodePilotPage() {
                               onChange={(content) =>
                                 updateFileContent(file.id, content || '')
                               }
-                              theme="vs-dark"
+                              theme={activeSidebarPage === 'theme-light' ? 'vs-light' : 'vs-dark'}
                               options={{
                                 minimap: { enabled: false },
                                 lineNumbers: 'on',

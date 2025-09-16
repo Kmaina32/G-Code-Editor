@@ -223,13 +223,17 @@ const getLanguage = (fileName: string): string => {
 const useStore = create<StoreState & StoreActions>((set, get) => {
     
     const saveProject = async () => {
-        const { userId, fileTree, projectName } = get();
+        const { userId, fileTree, projectName, commits, extensions, editorSettings, activeThemeId } = get();
         if (!userId) return;
         try {
             const projectRef = doc(db, 'projects', userId);
             const projectData = {
                 projectName: projectName,
-                fileTree: JSON.parse(JSON.stringify(fileTree))
+                fileTree: JSON.parse(JSON.stringify(fileTree)),
+                commits: JSON.parse(JSON.stringify(commits)),
+                extensions: JSON.parse(JSON.stringify(extensions)),
+                editorSettings: JSON.parse(JSON.stringify(editorSettings)),
+                activeThemeId: activeThemeId
             }
             await setDoc(projectRef, projectData);
         } catch (error) {
@@ -268,6 +272,10 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
             set({
               fileTree,
               projectName,
+              commits: projectData.commits || [],
+              extensions: projectData.extensions || defaultExtensions,
+              editorSettings: projectData.editorSettings || { fontSize: 14 },
+              activeThemeId: projectData.activeThemeId || 'neon-future',
               openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
               activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
               isLoading: false,
@@ -277,6 +285,10 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
             set({
                 fileTree: defaultFileTree,
                 projectName: 'My Project',
+                commits: [],
+                extensions: defaultExtensions,
+                editorSettings: { fontSize: 14 },
+                activeThemeId: 'neon-future',
                 openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
                 activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
                 isLoading: false,
@@ -293,9 +305,13 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
         set((state) => ({
           editorSettings: { ...state.editorSettings, ...settings },
         }));
+         get().saveProject();
       },
     
-      setActiveThemeId: (id: string) => set({ activeThemeId: id }),
+      setActiveThemeId: (id: string) => {
+        set({ activeThemeId: id });
+        get().saveProject();
+      },
     
       getFiles: () => flattenTree(get().fileTree),
     
@@ -398,7 +414,8 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
       
       renameItem: (id, newName) => {
         set((state) => ({
-          fileTree: renameItemInTree(state.fileTree, id, newName)
+          fileTree: renameItemInTree(state.fileTree, id, newName),
+          fileTree: get().fileTree.map(item => item.id === id ? {...item, isModified: true} : item)
         }));
         get().saveProject();
       },
@@ -468,6 +485,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
             ext.id === id ? { ...ext, installed: true } : ext
           ),
         }));
+        get().saveProject();
       },
     
       uninstallExtension: (id: string) => {
@@ -478,6 +496,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
           activeThemeId:
             state.activeThemeId === id ? 'neon-future' : state.activeThemeId,
         }));
+        get().saveProject();
       },
       
       commitChanges: (message: string) => {
@@ -551,5 +570,3 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
 }});
 
 export { useStore };
-
-  

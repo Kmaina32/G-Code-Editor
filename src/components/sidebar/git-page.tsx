@@ -55,9 +55,6 @@ export default function GitPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="text-sm font-bold text-muted-foreground px-2 mb-2">
-        SOURCE CONTROL
-      </h2>
       
       <div className="flex flex-col p-2 border rounded-lg bg-background/30">
         <Textarea
