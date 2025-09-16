@@ -167,12 +167,14 @@ interface StoreState {
   commits: Commit[];
   activeThemeId: string;
   userId: string | null;
+  projectName: string;
 }
 
 interface StoreActions {
   loadProject: (userId: string) => Promise<void>;
   saveProject: () => Promise<void>;
   setUserId: (userId: string | null) => void;
+  setProjectName: (name: string) => void;
   addFile: (name: string, parentId: string | null) => void;
   addFolder: (name: string, parentId: string | null) => void;
   deleteItem: (id: string) => void;
@@ -221,11 +223,15 @@ const getLanguage = (fileName: string): string => {
 const useStore = create<StoreState & StoreActions>((set, get) => {
     
     const saveProject = async () => {
-        const { userId, fileTree } = get();
+        const { userId, fileTree, projectName } = get();
         if (!userId) return;
         try {
             const projectRef = doc(db, 'projects', userId);
-            await setDoc(projectRef, { fileTree: JSON.parse(JSON.stringify(fileTree)) });
+            const projectData = {
+                projectName: projectName,
+                fileTree: JSON.parse(JSON.stringify(fileTree))
+            }
+            await setDoc(projectRef, projectData);
         } catch (error) {
             console.error("Error saving project:", error);
         }
@@ -243,8 +249,9 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
         fontSize: 14,
       },
       commits: [],
-      activeThemeId: 'theme-dark',
+      activeThemeId: 'neon-future',
       userId: null,
+      projectName: 'My Project',
       
       setUserId: (userId) => set({ userId }),
       
@@ -256,9 +263,11 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
         if (projectSnap.exists()) {
             const projectData = projectSnap.data();
             const fileTree = projectData.fileTree;
+            const projectName = projectData.projectName || 'My Project';
             const initialFiles = flattenTree(fileTree);
             set({
               fileTree,
+              projectName,
               openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
               activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
               isLoading: false,
@@ -267,11 +276,12 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
             const initialFiles = flattenTree(defaultFileTree);
             set({
                 fileTree: defaultFileTree,
+                projectName: 'My Project',
                 openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
                 activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
                 isLoading: false,
             });
-            await saveProject();
+            await get().saveProject();
         }
       },
       
@@ -292,6 +302,11 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
       findFile: (id) => {
          const item = findItemById(get().fileTree, id);
          return item?.type === 'file' ? item : undefined;
+      },
+    
+      setProjectName: (name: string) => {
+        set({ projectName: name });
+        get().saveProject();
       },
     
       addFile: (name, parentId = null) => {
@@ -315,7 +330,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
           openFileIds: [...state.openFileIds, newFile.id],
           activeFileId: newFile.id,
         }));
-        saveProject();
+        get().saveProject();
       },
     
       addFolder: (name, parentId = null) => {
@@ -336,7 +351,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
         set(state => ({
             fileTree: addItemToTree(state.fileTree, parentId, newFolder)
         }));
-        saveProject();
+        get().saveProject();
       },
     
     
@@ -376,7 +391,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
             fileToDelete: null,
           };
         });
-        saveProject();
+        get().saveProject();
       },
     
       setFileToDelete: (id) => set({ fileToDelete: id }),
@@ -385,17 +400,22 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
         set((state) => ({
           fileTree: renameItemInTree(state.fileTree, id, newName)
         }));
-        saveProject();
+        get().saveProject();
       },
       
       updateFileContent: (id, content) => {
         set((state) => ({
           fileTree: updateFileContentInTree(state.fileTree, id, content),
         }));
-        saveProject();
+        // Do not save on every content update for performance reasons.
+        // It will be saved on other actions or periodically.
+        // A better implementation would be to debounce this.
       },
     
       openFile: (id) => {
+        const file = findItemById(get().fileTree, id);
+        if(file?.type !== 'file') return;
+
         if (!get().openFileIds.includes(id)) {
           set((state) => ({ openFileIds: [...state.openFileIds, id] }));
         }
@@ -406,7 +426,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
         set(state => ({
           fileTree: toggleFolderInTree(state.fileTree, id)
         }));
-        saveProject();
+        get().saveProject();
       },
     
       closeFile: (id) => {
@@ -456,7 +476,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
             ext.id === id ? { ...ext, installed: false } : ext
           ),
           activeThemeId:
-            state.activeThemeId === id ? 'theme-dark' : state.activeThemeId,
+            state.activeThemeId === id ? 'neon-future' : state.activeThemeId,
         }));
       },
       
@@ -488,7 +508,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
           commits: [newCommit, ...state.commits],
           fileTree: markAsUnmodified(state.fileTree),
         }));
-        saveProject();
+        get().saveProject();
       },
     
     
@@ -507,7 +527,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
         
         const historicalFiles: File[] = commit.files.map(file => ({
           ...file,
-          id: `hist-${commit.id}-${file.id}`,
+          id: `hist-${commit.id}-${file.originalId || file.id}`,
           originalId: file.id,
           isReadOnly: true,
           isModified: false,
@@ -531,3 +551,5 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
 }});
 
 export { useStore };
+
+    

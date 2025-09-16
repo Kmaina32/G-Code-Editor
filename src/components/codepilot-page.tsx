@@ -21,6 +21,7 @@ import {
   Puzzle,
   Settings,
   PanelLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
@@ -198,6 +199,7 @@ export function CodePilotPage() {
     editorSettings,
     getFiles,
     findFile,
+    projectName,
   } = useStore();
 
   const files = getFiles();
@@ -527,9 +529,11 @@ export function CodePilotPage() {
       <div className="flex flex-col h-screen bg-background font-sans overflow-hidden">
         <header className="flex items-center justify-between h-14 px-2 border-b shrink-0">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <Code className="w-7 h-7 text-primary" />
               <h1 className="text-lg font-bold font-headline">CodePilot</h1>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <span className="text-lg font-medium text-muted-foreground">{projectName}</span>
             </div>
             <div className="flex items-center gap-1 ml-4">
                {sidebarNavItems.map((item) => (
@@ -914,3 +918,5 @@ export function CodePilotPage() {
     </TooltipProvider>
   );
 }
+
+    
