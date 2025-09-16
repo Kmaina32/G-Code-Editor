@@ -8,11 +8,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useStore, FileSystemItem, Folder } from "@/lib/store";
-import { FilePlus, FolderPlus, Pencil, Trash2, Folder as FolderIcon, FolderOpen } from "lucide-react";
+import { FilePlus, FolderPlus, Pencil, Trash2, Folder as FolderIcon, FolderOpen, Sparkles } from "lucide-react";
 import { FileTypeIcon } from "@/components/codepilot-page";
 import React, { useState } from "react";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
+import { suggestCodeImprovements } from "@/ai/flows/suggest-code-improvements";
+import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "../ui/scroll-area";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 
 const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item, level }) => {
     const {
@@ -206,9 +210,12 @@ const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item,
 
 
 export default function ExplorerPage() {
-  const { fileTree, addFile, addFolder } = useStore();
+  const { fileTree, addFile, addFolder, activeFileId, findFile, isGenerating, setIsGenerating } = useStore();
   const [isCreating, setIsCreating] = useState<'file' | 'folder' | null>(null);
   const [creatingName, setCreatingName] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const { toast } = useToast();
 
   const handleCreate = (type: 'file' | 'folder') => {
     setIsCreating(type);
@@ -227,51 +234,112 @@ export default function ExplorerPage() {
     setCreatingName('');
   }
 
+  const activeFile = findFile(activeFileId || '');
+
+  const handleGenerateSuggestions = async () => {
+    if (!activeFile) return;
+    setIsGenerating(true);
+    setSuggestions([]);
+    try {
+      const result = await suggestCodeImprovements({
+        code: activeFile.content,
+        language: activeFile.language,
+      });
+      setSuggestions(result.suggestions);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error('Error getting suggestions:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not generate AI suggestions.',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-bold text-muted-foreground px-2">
-          EXPLORER
-        </h2>
-        <div className="flex">
-             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => handleCreate('file')} className="h-7 w-7">
-                        <FilePlus className="w-4 h-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right"><p>New File</p></TooltipContent>
-            </Tooltip>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => handleCreate('folder')} className="h-7 w-7">
-                        <FolderPlus className="w-4 h-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right"><p>New Folder</p></TooltipContent>
-            </Tooltip>
+    <>
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-bold text-muted-foreground px-2">
+            EXPLORER
+          </h2>
+          <div className="flex">
+               <Tooltip>
+                  <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={handleGenerateSuggestions} className="h-7 w-7" disabled={isGenerating || !activeFile}>
+                          <Sparkles className="w-4 h-4" />
+                      </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right"><p>AI Suggest (Ctrl+I)</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => handleCreate('file')} className="h-7 w-7">
+                          <FilePlus className="w-4 h-4" />
+                      </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right"><p>New File</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => handleCreate('folder')} className="h-7 w-7">
+                          <FolderPlus className="w-4 h-4" />
+                      </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right"><p>New Folder</p></TooltipContent>
+              </Tooltip>
+          </div>
         </div>
+        <ul className="mt-2 space-y-px">
+          {isCreating && (
+            <li className="p-1">
+              <form onSubmit={handleCreateSubmit} className="flex gap-2">
+                <Input
+                  type="text"
+                  value={creatingName}
+                  onChange={(e) => setCreatingName(e.target.value)}
+                  placeholder={`New ${isCreating}...`}
+                  className="h-7 text-sm"
+                  autoFocus
+                  onBlur={() => { setIsCreating(null); setCreatingName(''); }}
+                />
+              </form>
+            </li>
+          )}
+          {fileTree.map((item) => (
+            <ExplorerItem key={item.id} item={item} level={0} />
+          ))}
+        </ul>
       </div>
-      <ul className="mt-2 space-y-px">
-        {isCreating && (
-          <li className="p-1">
-            <form onSubmit={handleCreateSubmit} className="flex gap-2">
-              <Input
-                type="text"
-                value={creatingName}
-                onChange={(e) => setCreatingName(e.target.value)}
-                placeholder={`New ${isCreating}...`}
-                className="h-7 text-sm"
-                autoFocus
-                onBlur={() => { setIsCreating(null); setCreatingName(''); }}
-              />
-            </form>
-          </li>
-        )}
-        {fileTree.map((item) => (
-          <ExplorerItem key={item.id} item={item} level={0} />
-        ))}
-      </ul>
-    </div>
+      <AlertDialog open={showSuggestions} onOpenChange={setShowSuggestions}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>AI Code Suggestions</AlertDialogTitle>
+            <AlertDialogDescription>
+              Here are some suggestions to improve your code:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ScrollArea className="h-60">
+            <ul className="space-y-2 p-4">
+              {suggestions.map((s, i) => (
+                <li key={i} className="text-sm p-2 bg-muted rounded">
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowSuggestions(false)}>
+              Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
+
+    

@@ -158,6 +158,7 @@ interface StoreState {
   openFileIds: string[];
   activeFileId: string | null;
   isLoading: boolean;
+  isGenerating: boolean;
   fileToDelete: string | null;
   extensions: Extension[];
   editorSettings: EditorSettings;
@@ -185,6 +186,7 @@ interface StoreActions {
   toggleFolder: (id: string) => void;
   getFiles: () => File[];
   findFile: (id: string) => File | undefined;
+  setIsGenerating: (isGenerating: boolean) => void;
 }
 
 const getLanguage = (fileName: string): string => {
@@ -216,6 +218,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   openFileIds: [],
   activeFileId: null,
   isLoading: true,
+  isGenerating: false,
   fileToDelete: null,
   extensions: defaultExtensions,
   editorSettings: {
@@ -223,6 +226,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
   commits: [],
   activeThemeId: 'theme-dark',
+  
+  setIsGenerating: (isGenerating) => set({ isGenerating }),
 
   setEditorSettings: (settings) => {
     set((state) => ({
@@ -477,3 +482,5 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     });
   }
 }));
+
+    

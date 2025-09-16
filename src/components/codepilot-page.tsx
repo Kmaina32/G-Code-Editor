@@ -176,7 +176,6 @@ export function CodePilotPage() {
     activeFileId,
     loadInitialFiles,
     updateFileContent,
-    openFile,
     closeFile,
     setActiveFile,
     deleteItem,
@@ -186,6 +185,8 @@ export function CodePilotPage() {
     editorSettings,
     getFiles,
     findFile,
+    isGenerating,
+    setIsGenerating,
   } = useStore();
 
   const files = getFiles();
@@ -193,9 +194,6 @@ export function CodePilotPage() {
   const [output, setOutput] = useState('');
   const [previewDoc, setPreviewDoc] = useState('');
   const [activeTab, setActiveTab] = useState('terminal');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
@@ -431,29 +429,6 @@ export function CodePilotPage() {
     [toast, isExecuting]
   );
 
-  const handleGenerateSuggestions = async () => {
-    if (!activeFile) return;
-    setIsGenerating(true);
-    setSuggestions([]);
-    try {
-      const result = await suggestCodeImprovements({
-        code: activeFile.content,
-        language: activeFile.language,
-      });
-      setSuggestions(result.suggestions);
-      setShowSuggestions(true);
-    } catch (error) {
-      console.error('Error getting suggestions:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not generate AI suggestions.',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const handleExportProject = async () => {
     const zip = new JSZip();
     const allFiles = getFiles();
@@ -482,10 +457,6 @@ export function CodePilotPage() {
       if (ctrlKey && event.key === 'Enter') {
         event.preventDefault();
         handleRunCode();
-      }
-      if (ctrlKey && event.key === 'i') {
-        event.preventDefault();
-        handleGenerateSuggestions();
       }
       if (ctrlKey && event.key === 'e') {
         event.preventDefault();
@@ -544,22 +515,6 @@ export function CodePilotPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={handleGenerateSuggestions}
-                    size="sm"
-                    variant="outline"
-                    disabled={isGenerating || !activeFile}
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    {isGenerating ? 'Generating...' : 'AI Suggest'}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Get AI suggestions for the current file</p>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
                     onClick={handleExportProject}
                     size="sm"
                     variant="outline"
@@ -570,26 +525,6 @@ export function CodePilotPage() {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Download project as a .zip file</p>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={handleRunCode}
-                    size="sm"
-                    disabled={isExecuting || !activeFile || isPyodideLoading || activeFile?.isReadOnly}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    {isExecuting || isPyodideLoading ? (
-                      <LoadingSpinner className="mr-2" />
-                    ) : (
-                      <Play className="mr-2 h-4 w-4" />
-                    )}
-                    {isExecuting ? 'Running...' : 'Run'}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Run code and see preview</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -701,11 +636,33 @@ export function CodePilotPage() {
                     onValueChange={setActiveTab}
                     className="h-full flex flex-col"
                   >
-                    <TabsList>
-                      <TabsTrigger value="preview">Preview</TabsTrigger>
-                      <TabsTrigger value="output">Output</TabsTrigger>
-                      <TabsTrigger value="terminal">Terminal</TabsTrigger>
-                    </TabsList>
+                    <div className="flex justify-between items-center pr-2">
+                      <TabsList>
+                        <TabsTrigger value="preview">Preview</TabsTrigger>
+                        <TabsTrigger value="output">Output</TabsTrigger>
+                        <TabsTrigger value="terminal">Terminal</TabsTrigger>
+                      </TabsList>
+                       <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={handleRunCode}
+                            size="sm"
+                            disabled={isExecuting || !activeFile || isPyodideLoading || activeFile?.isReadOnly}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            {isExecuting || isPyodideLoading ? (
+                              <LoadingSpinner className="mr-2" />
+                            ) : (
+                              <Play className="mr-2 h-4 w-4" />
+                            )}
+                            {isExecuting ? 'Running...' : 'Run'}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Run code and see preview (Ctrl+Enter)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     <TabsContent
                       value="preview"
                       className="flex-grow bg-white mt-0 rounded-b-lg overflow-hidden"
@@ -867,30 +824,6 @@ export function CodePilotPage() {
           </ResizablePanelGroup>
         </div>
       </div>
-      <AlertDialog open={showSuggestions} onOpenChange={setShowSuggestions}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>AI Code Suggestions</AlertDialogTitle>
-            <AlertDialogDescription>
-              Here are some suggestions to improve your code:
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <ScrollArea className="h-60">
-            <ul className="space-y-2 p-4">
-              {suggestions.map((s, i) => (
-                <li key={i} className="text-sm p-2 bg-muted rounded">
-                  {s}
-                </li>
-              ))}
-            </ul>
-          </ScrollArea>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowSuggestions(false)}>
-              Close
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       <AlertDialog
         open={!!fileToDelete}
         onOpenChange={() => setFileToDelete(null)}
@@ -927,3 +860,5 @@ export function CodePilotPage() {
     </TooltipProvider>
   );
 }
+
+    
