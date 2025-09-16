@@ -30,7 +30,6 @@ export default function SettingsPage() {
                         {installedThemes.map(theme => (
                             <SelectItem key={theme.id} value={theme.id}>{theme.name}</SelectItem>
                         ))}
-                         <SelectItem value="neon-future" disabled>Neon Future (Active)</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
