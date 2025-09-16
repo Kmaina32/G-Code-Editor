@@ -167,3 +167,5 @@ export const TerminalComponent = forwardRef<
 });
 
 TerminalComponent.displayName = 'TerminalComponent';
+
+    
