@@ -54,7 +54,7 @@ export function AppSidebar({ activePage, onPageChange }: { activePage: string, o
             ))}
           </SidebarMenu>
         </Sidebar>
-        <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border/50 w-[var(--sidebar-width)]">
+        <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border/50 w-96">
         <div className="flex items-center justify-between p-2 h-14 border-b border-sidebar-border/50">
             <h2 className="text-lg font-bold px-2 uppercase">{CurrentPage.title}</h2>
         </div>
