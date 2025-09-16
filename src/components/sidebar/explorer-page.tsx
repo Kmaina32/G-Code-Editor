@@ -32,6 +32,9 @@ const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item,
 
   const handleCreate = (type: 'file' | 'folder') => {
     setIsCreating(type);
+    if(item.type === 'folder' && !item.isOpen) {
+      toggleFolder(item.id);
+    }
   };
   
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -120,14 +123,14 @@ const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item,
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover/menu-item:opacity-100" onClick={(e) => { e.stopPropagation(); setFileToDelete(item.id);}}>
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right"><p>Delete</p></TooltipContent>
             </Tooltip>
           </div>
         </li>
-        {isCreating && (
+        {isCreating && item.isOpen && (
              <li className="p-1" style={{ paddingLeft: `${(level + 1) * 1.5 + 0.25}rem`}}>
                 <form onSubmit={handleCreateSubmit} className="flex gap-2">
                 <Input
@@ -189,7 +192,7 @@ const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item,
                 setFileToDelete(item.id);
               }}
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-3 w-3 text-destructive" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
@@ -215,9 +218,9 @@ export default function ExplorerPage() {
     e.preventDefault();
      if(creatingName && isCreating){
       if(isCreating === 'file'){
-        addFile(creatingName);
+        addFile(creatingName, null);
       } else {
-        addFolder(creatingName);
+        addFolder(creatingName, null);
       }
     }
     setIsCreating(null);

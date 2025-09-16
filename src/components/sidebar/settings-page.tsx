@@ -19,6 +19,25 @@ export default function SettingsPage() {
       </h2>
 
       <div className="space-y-4">
+        <h3 className="text-xs font-bold uppercase text-muted-foreground px-2">Appearance</h3>
+        <div className="p-2 border rounded-lg bg-background/30 space-y-4">
+            <div className="flex items-center justify-between">
+                <Label htmlFor="theme" className="text-sm">Theme</Label>
+                <Select
+                    value={activeThemeId}
+                    onValueChange={setActiveThemeId}
+                >
+                    <SelectTrigger className="w-[150px] h-8">
+                        <SelectValue placeholder="Select Theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {installedThemes.map(theme => (
+                            <SelectItem key={theme.id} value={theme.id}>{theme.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
         <h3 className="text-xs font-bold uppercase text-muted-foreground px-2">Editor</h3>
         <div className="p-2 border rounded-lg bg-background/30 space-y-4">
             <div className="flex items-center justify-between">
@@ -33,22 +52,6 @@ export default function SettingsPage() {
                     <SelectContent>
                         {fontSizes.map(size => (
                             <SelectItem key={size} value={String(size)}>{size} px</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div className="flex items-center justify-between">
-                <Label htmlFor="theme" className="text-sm">Theme</Label>
-                <Select
-                    value={activeThemeId}
-                    onValueChange={setActiveThemeId}
-                >
-                    <SelectTrigger className="w-[150px] h-8">
-                        <SelectValue placeholder="Select Theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {installedThemes.map(theme => (
-                            <SelectItem key={theme.id} value={theme.id}>{theme.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
