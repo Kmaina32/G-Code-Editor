@@ -15,6 +15,12 @@ import {
   PowerOff,
   Square,
   Eye,
+  Folder,
+  Search,
+  GitBranch,
+  Puzzle,
+  Settings,
+  PanelLeft,
 } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
@@ -54,6 +60,7 @@ import { app } from '@/lib/firebase';
 import { AppSidebar } from '@/components/app-sidebar';
 import 'xterm/css/xterm.css';
 import type { TerminalComponent as TerminalComponentType } from '@/components/terminal';
+import { cn } from '@/lib/utils';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -169,6 +176,14 @@ export function FileTypeIcon({
   }
 }
 
+const sidebarNavItems = [
+  { id: 'explorer', title: 'Explorer', icon: Folder },
+  { id: 'search', title: 'Search', icon: Search },
+  { id: 'git', title: 'Source Control', icon: GitBranch },
+  { id: 'extensions', title: 'Extensions', icon: Puzzle },
+  { id: 'settings', title: 'Settings', icon: Settings },
+];
+
 export function CodePilotPage() {
   const {
     openFileIds,
@@ -198,6 +213,17 @@ export function CodePilotPage() {
   const jsWorkerRef = useRef<Worker | null>(null);
   const pyodideRef = useRef<any>(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [activeSidebarPage, setActiveSidebarPage] = useState('explorer');
+
+  const handleSidebarToggle = (pageId: string) => {
+    if (activeSidebarPage === pageId && isSidebarOpen) {
+      setIsSidebarOpen(false);
+    } else {
+      setActiveSidebarPage(pageId);
+      setIsSidebarOpen(true);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -302,7 +328,6 @@ export function CodePilotPage() {
     `;
     setPreviewDoc(srcDoc);
   }, [files, getFiles]);
-
 
   const activeFile = useMemo(
     () => findFile(activeFileId || ''),
@@ -429,7 +454,7 @@ export function CodePilotPage() {
     const allFiles = getFiles();
     allFiles.forEach((file) => {
       // Create folders in the zip file based on the file's path
-      const pathParts = file.path.split('/').filter(p => p);
+      const pathParts = file.path.split('/').filter((p) => p);
       let currentFolder: JSZip | null = zip;
       for (let i = 0; i < pathParts.length - 1; i++) {
         currentFolder = currentFolder.folder(pathParts[i]);
@@ -500,9 +525,30 @@ export function CodePilotPage() {
   return (
     <TooltipProvider>
       <div className="flex flex-col h-screen bg-background font-sans overflow-hidden">
-        <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
-          <div className="flex items-center gap-4">
-            {/* The sidebar will have its own header now */}
+        <header className="flex items-center justify-between h-14 px-2 border-b shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Code className="w-7 h-7 text-primary" />
+              <h1 className="text-lg font-bold font-headline">CodePilot</h1>
+            </div>
+            <div className="flex items-center gap-1 ml-4">
+               {sidebarNavItems.map((item) => (
+                <Tooltip key={item.id}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={activeSidebarPage === item.id && isSidebarOpen ? 'secondary' : 'ghost'}
+                      size="icon"
+                      onClick={() => handleSidebarToggle(item.id)}
+                    >
+                      <item.icon className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{item.title}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -526,11 +572,19 @@ export function CodePilotPage() {
           </div>
         </header>
         <div className="flex flex-grow min-h-0">
-          <AppSidebar />
           <ResizablePanelGroup
             direction="horizontal"
             className="flex-grow min-w-0"
           >
+            {isSidebarOpen && (
+              <>
+                <ResizablePanel defaultSize={15} minSize={10} maxSize={25}>
+                  <AppSidebar activePage={activeSidebarPage} />
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+              </>
+            )}
+
             <ResizablePanel
               defaultSize={85}
               className="flex flex-col min-w-0"
@@ -564,7 +618,8 @@ export function CodePilotPage() {
                                       language={file.language}
                                       className="w-4 h-4 mr-2"
                                     />
-                                    {file.name}{file.isReadOnly && " (read-only)"}
+                                    {file.name}
+                                    {file.isReadOnly && ' (read-only)'}
                                   </TabsTrigger>
                                   <button
                                     onClick={(e) => {
@@ -636,12 +691,17 @@ export function CodePilotPage() {
                         <TabsTrigger value="output">Output</TabsTrigger>
                         <TabsTrigger value="terminal">Terminal</TabsTrigger>
                       </TabsList>
-                       <Tooltip>
+                      <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             onClick={handleRunCode}
                             size="sm"
-                            disabled={isExecuting || !activeFile || isPyodideLoading || activeFile?.isReadOnly}
+                            disabled={
+                              isExecuting ||
+                              !activeFile ||
+                              isPyodideLoading ||
+                              activeFile?.isReadOnly
+                            }
                             className="bg-primary hover:bg-primary/90 text-primary-foreground"
                           >
                             {isExecuting || isPyodideLoading ? (
@@ -752,7 +812,7 @@ export function CodePilotPage() {
                               className="h-6 w-6"
                             >
                               <Split className="h-4 w-4" />
-                            </Button>                          
+                            </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Split Terminal</p>
