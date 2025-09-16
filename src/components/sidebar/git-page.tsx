@@ -8,15 +8,15 @@ import { Button } from "../ui/button";
 import { FileTypeIcon } from "@/components/codepilot-page";
 import { ScrollArea } from "../ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { GitCommit } from "lucide-react";
+import { GitCommit, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function GitPage() {
-  const { files, commits, commitChanges } = useStore();
+  const { files, commits, commitChanges, viewCommit } = useStore();
   const [commitMessage, setCommitMessage] = useState("");
   const { toast } = useToast();
 
-  const modifiedFiles = files.filter(file => file.isModified);
+  const modifiedFiles = files.filter(file => file.isModified && !file.isReadOnly);
 
   const handleCommit = () => {
     if (!commitMessage) {
@@ -41,6 +41,14 @@ export default function GitPage() {
     toast({
         title: "Changes committed",
         description: `Committed ${numFiles} file(s).`,
+    });
+  };
+
+  const handleViewCommit = (commitId: string) => {
+    viewCommit(commitId);
+    toast({
+      title: "Viewing Commit",
+      description: "Opened files from the selected commit in read-only mode.",
     });
   };
 
@@ -88,7 +96,7 @@ export default function GitPage() {
         <ScrollArea className="flex-grow">
             <ul className="space-y-3">
             {commits.map(commit => (
-                <li key={commit.id} className="flex items-start text-sm p-1 rounded-md">
+                <li key={commit.id} className="flex items-start text-sm p-1 rounded-md group/commit">
                     <GitCommit className="w-4 h-4 mr-3 mt-0.5 text-muted-foreground" />
                     <div className="flex-grow">
                         <p className="font-medium leading-tight">{commit.message}</p>
@@ -96,6 +104,14 @@ export default function GitPage() {
                             {formatDistanceToNow(new Date(commit.createdAt), { addSuffix: true })}
                         </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover/commit:opacity-100"
+                      onClick={() => handleViewCommit(commit.id)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                 </li>
             ))}
              {commits.length === 0 && (
@@ -107,3 +123,5 @@ export default function GitPage() {
     </div>
   );
 }
+
+    

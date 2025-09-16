@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { defaultFiles } from './default-files';
 import { defaultExtensions, Extension } from './extensions';
@@ -8,6 +9,8 @@ export interface File {
   language: string;
   content: string;
   isModified?: boolean;
+  isReadOnly?: boolean;
+  originalId?: string; 
 }
 
 export interface Commit {
@@ -48,6 +51,7 @@ interface StoreActions {
   setEditorSettings: (settings: Partial<EditorSettings>) => void;
   commitChanges: (message: string) => void;
   setActiveThemeId: (id: string) => void;
+  viewCommit: (commitId: string) => void;
 }
 
 const getLanguage = (fileName: string): string => {
@@ -96,6 +100,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       ...file,
       id: `file-${index}-${Date.now()}`,
       isModified: false,
+      isReadOnly: false,
     }));
     set({
       files: initialFiles,
@@ -121,6 +126,13 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
 
   deleteFile: (id) => {
+    const file = get().files.find(f => f.id === id);
+    if(file?.isReadOnly){
+      // For read-only files, just close them
+      get().closeFile(id);
+      return;
+    }
+
     set((state) => {
       const newOpenFileIds = state.openFileIds.filter((fileId) => fileId !== id);
       let newActiveFileId = state.activeFileId;
@@ -162,7 +174,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   updateFileContent: (id, content) => {
     set((state) => ({
       files: state.files.map((file) =>
-        file.id === id ? { ...file, content, isModified: true } : file
+        file.id === id && !file.isReadOnly ? { ...file, content, isModified: true } : file
       ),
     }));
   },
@@ -175,7 +187,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
 
   closeFile: (id) => {
-    const { openFileIds, activeFileId } = get();
+    const { openFileIds, activeFileId, files } = get();
     const newOpenFileIds = openFileIds.filter((fileId) => fileId !== id);
     let newActiveFileId = activeFileId;
 
@@ -187,7 +199,14 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         newActiveFileId = null;
       }
     }
-    set({ openFileIds: newOpenFileIds, activeFileId: newActiveFileId });
+    
+    // If it's a historical file, remove it from the files array as well
+    const fileToClose = files.find(f => f.id === id);
+    const newFiles = fileToClose?.isReadOnly
+      ? files.filter(f => f.id !== id)
+      : files;
+
+    set({ files: newFiles, openFileIds: newOpenFileIds, activeFileId: newActiveFileId });
   },
 
   setActiveFile: (id) => {
@@ -214,19 +233,44 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
   commitChanges: (message: string) => {
     const { files } = get();
-    const modifiedFiles = files.filter(file => file.isModified);
+    const modifiedFiles = files.filter(file => file.isModified && !file.isReadOnly);
     if(modifiedFiles.length === 0) return;
 
     const newCommit: Commit = {
       id: `commit-${Date.now()}`,
       message,
       createdAt: new Date().toISOString(),
-      files: modifiedFiles.map(f => ({...f})) // Create a snapshot
+      files: JSON.parse(JSON.stringify(modifiedFiles.map(f => ({...f, isModified: false})))) // Deep copy snapshot
     };
     
     set(state => ({
       commits: [newCommit, ...state.commits],
       files: state.files.map(file => ({...file, isModified: false}))
     }))
+  },
+
+  viewCommit: (commitId: string) => {
+    const { commits, files, openFileIds } = get();
+    const commit = commits.find(c => c.id === commitId);
+    if (!commit) return;
+
+    // Remove any existing historical files
+    const nonHistoricalFiles = files.filter(f => !f.isReadOnly);
+    const nonHistoricalOpenFileIds = openFileIds.filter(id => nonHistoricalFiles.some(f => f.id === id));
+    
+    const historicalFiles: File[] = commit.files.map(file => ({
+      ...file,
+      id: `hist-${commit.id}-${file.originalId || file.id}`,
+      isReadOnly: true,
+      isModified: false,
+    }));
+
+    set({
+      files: [...nonHistoricalFiles, ...historicalFiles],
+      openFileIds: [...nonHistoricalOpenFileIds, ...historicalFiles.map(f => f.id)],
+      activeFileId: historicalFiles[0]?.id || null,
+    })
   }
 }));
+
+    

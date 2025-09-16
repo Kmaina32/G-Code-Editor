@@ -14,6 +14,7 @@ import {
   Split,
   PowerOff,
   Square,
+  Eye,
 } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
@@ -547,7 +548,7 @@ export function CodePilotPage() {
                   <Button
                     onClick={handleRunCode}
                     size="sm"
-                    disabled={isExecuting || !activeFile || isPyodideLoading}
+                    disabled={isExecuting || !activeFile || isPyodideLoading || activeFile?.isReadOnly}
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     {isExecuting || isPyodideLoading ? (
@@ -605,7 +606,7 @@ export function CodePilotPage() {
                                       language={file.language}
                                       className="w-4 h-4 mr-2"
                                     />
-                                    {file.name}
+                                    {file.name}{file.isReadOnly && " (read-only)"}
                                   </TabsTrigger>
                                   <button
                                     onClick={(e) => {
@@ -639,6 +640,7 @@ export function CodePilotPage() {
                                 minimap: { enabled: false },
                                 lineNumbers: 'on',
                                 fontSize: editorSettings.fontSize,
+                                readOnly: file.isReadOnly,
                               }}
                             />
                           </TabsContent>
@@ -896,3 +898,5 @@ export function CodePilotPage() {
     </TooltipProvider>
   );
 }
+
+    
