@@ -259,6 +259,45 @@ export function CodePilotPage() {
     };
   }, [loadInitialFiles, auth]);
 
+  useEffect(() => {
+    // Live preview logic
+    const htmlFile = files.find((f) => f.name.endsWith('.html'));
+    const cssFile = files.find((f) => f.name.endsWith('.css'));
+    const jsFile = files.find((f) => f.name.endsWith('.js'));
+
+    const srcDoc = `
+      <html>
+        <head>
+          <style>${cssFile?.content || ''}</style>
+        </head>
+        <body>
+          ${htmlFile?.content || ''}
+          <script>${
+            jsFile?.content
+              ? `
+            // Web Worker based console for preview
+            const workerConsole = {
+              log: (...args) => window.parent.postMessage({ source: 'iframe', type: 'log', message: args.join(' ') }, '*'),
+              error: (...args) => window.parent.postMessage({ source: 'iframe', type: 'error', message: args.join(' ') }, '*'),
+              warn: (...args) => window.parent.postMessage({ source: 'iframe', type: 'warn', message: args.join(' ') }, '*'),
+            };
+            window.console = { ...window.console, ...workerConsole };
+            
+            try {
+              ${jsFile.content}
+            } catch (e) {
+              console.error(e);
+            }
+          `
+              : ''
+          }</script>
+        </body>
+      </html>
+    `;
+    setPreviewDoc(srcDoc);
+  }, [files]);
+
+
   const activeFile = useMemo(
     () => files.find((file) => file.id === activeFileId),
     [files, activeFileId]
@@ -315,41 +354,7 @@ export function CodePilotPage() {
         terminalRef.current?.write('$ ');
       }
     } else if (activeFile.language === 'html') {
-      const htmlFile = files.find((f) => f.name.endsWith('.html'));
-      const cssFile = files.find((f) => f.name.endsWith('.css'));
-      const jsFile = files.find((f) => f.name.endsWith('.js'));
-
-      const srcDoc = `
-        <html>
-          <head>
-            <style>${cssFile?.content || ''}</style>
-          </head>
-          <body>
-            ${htmlFile?.content || ''}
-            <script>${
-              jsFile?.content
-                ? `
-              // Web Worker based console for preview
-              const workerConsole = {
-                log: (...args) => window.parent.postMessage({ source: 'iframe', type: 'log', message: args.join(' ') }, '*'),
-                error: (...args) => window.parent.postMessage({ source: 'iframe', type: 'error', message: args.join(' ') }, '*'),
-                warn: (...args) => window.parent.postMessage({ source: 'iframe', type: 'warn', message: args.join(' ') }, '*'),
-              };
-              window.console = { ...window.console, ...workerConsole };
-              
-              try {
-                ${jsFile.content}
-              } catch (e) {
-                console.error(e);
-              }
-            `
-                : ''
-            }</script>
-          </body>
-        </html>
-      `;
-      setPreviewDoc(srcDoc);
-      setOutput('');
+      // The live preview useEffect now handles this, but we can switch to the tab
       setActiveTab('preview');
     } else {
       setIsExecuting(true);
@@ -772,7 +777,7 @@ export function CodePilotPage() {
                               className="h-6 w-6"
                             >
                               <Split className="h-4 w-4" />
-                            </Button>
+                            </Button>                          
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Split Terminal</p>
