@@ -5,6 +5,8 @@ import { defaultFileTree } from './default-files';
 import { defaultExtensions, Extension } from './extensions';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import type { EditCodeOutput } from '@/ai/flows/edit-code';
+
 
 export type File = {
   id: string;
@@ -160,6 +162,20 @@ const toggleFolderInTree = (items: FileSystemItem[], id: string): FileSystemItem
     });
 };
 
+// Helper function to find a file by its path
+const findFileByPath = (items: FileSystemItem[], path: string): File | undefined => {
+  for (const item of items) {
+    if (item.type === 'file' && item.path === path) {
+      return item;
+    }
+    if (item.type === 'folder' && item.children) {
+      const found = findFileByPath(item.children, path);
+      if (found) return found;
+    }
+  }
+  return undefined;
+};
+
 
 interface StoreState {
   fileTree: FileSystemItem[];
@@ -175,6 +191,7 @@ interface StoreState {
   userId: string | null;
   projectName: string;
   aiCoderHistory: AiCoderMessage[];
+  proposedAiChanges: EditCodeOutput | null;
 }
 
 interface StoreActions {
@@ -202,6 +219,8 @@ interface StoreActions {
   getFiles: () => File[];
   findFile: (id: string) => File | undefined;
   setIsGenerating: (isGenerating: boolean) => void;
+  applyAiChanges: () => void;
+  cancelAiChanges: () => void;
 }
 
 const getLanguage = (fileName: string): string => {
@@ -266,6 +285,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
       activeThemeId: 'neon-future',
       userId: null,
       projectName: 'My Project',
+      proposedAiChanges: null,
       
       setUserId: (userId) => set({ userId }),
       
@@ -288,7 +308,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
               activeThemeId: projectData.activeThemeId || 'neon-future',
               aiCoderHistory: projectData.aiCoderHistory || [],
               openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
-              activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
+              activeFileId: initialFiles.length > 0 ? [initialFiles[0].id] : null,
               isLoading: false,
             });
         } else {
@@ -327,6 +347,9 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
 
       addAiCoderMessage: (message) => {
         set(state => ({ aiCoderHistory: [...state.aiCoderHistory, message]}));
+        if (message.role === 'ai' && message.content && !message.content.error) {
+            set({ proposedAiChanges: message.content });
+        }
         get().saveProject();
       },
     
@@ -432,7 +455,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
       renameItem: (id, newName) => {
         set((state) => ({
           fileTree: renameItemInTree(state.fileTree, id, newName),
-          fileTree: get().fileTree.map(item => item.id === id ? {...item, isModified: true} : item)
+          fileTree: state.fileTree.map(item => item.id === id ? {...item, isModified: true} : item)
         }));
         get().saveProject();
       },
@@ -583,7 +606,29 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
           openFileIds: [...nonHistoricalOpenFileIds, ...historicalFiles.map(f => f.id)],
           activeFileId: historicalFiles[0]?.id || null,
         });
-      }
+      },
+
+      applyAiChanges: () => {
+        const { proposedAiChanges, fileTree } = get();
+        if (!proposedAiChanges) return;
+
+        let newFileTree = fileTree;
+        
+        proposedAiChanges.changes.forEach(change => {
+            const file = findFileByPath(newFileTree, change.file);
+            if(file){
+                newFileTree = updateFileContentInTree(newFileTree, file.id, change.content);
+            }
+        });
+        
+        set({fileTree: newFileTree, proposedAiChanges: null});
+        get().commitChanges(proposedAiChanges.commitMessage);
+      },
+
+      cancelAiChanges: () => {
+        set({ proposedAiChanges: null });
+        get().saveProject();
+      },
 }});
 
 export { useStore };

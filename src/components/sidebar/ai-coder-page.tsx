@@ -3,19 +3,13 @@
 
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
-import { Sparkles, User, Bot } from "lucide-react";
+import { Sparkles, User, Bot, Check, X } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "../ui/scroll-area";
 import { LoadingSpinner } from "../ui/loading-spinner";
 import { Textarea } from "../ui/textarea";
-import { editCode, EditCodeOutput } from "@/ai/flows/edit-code";
-
-declare global {
-  interface Window {
-    applyChanges: (changes: EditCodeOutput) => void;
-  }
-}
+import { editCode } from "@/ai/flows/edit-code";
 
 export default function AiCoderPage() {
   const { 
@@ -26,7 +20,9 @@ export default function AiCoderPage() {
     setIsGenerating, 
     aiCoderHistory, 
     addAiCoderMessage,
-    commitChanges
+    proposedAiChanges,
+    applyAiChanges,
+    cancelAiChanges,
   } = useStore();
   const [prompt, setPrompt] = useState("");
   const { toast } = useToast();
@@ -37,7 +33,7 @@ export default function AiCoderPage() {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
-  }, [aiCoderHistory]);
+  }, [aiCoderHistory, isGenerating]);
 
   const handleGenerateChanges = async () => {
     if (!prompt.trim()) {
@@ -69,29 +65,11 @@ export default function AiCoderPage() {
         return;
       }
       
-      const result = await editCode({
+      await editCode({
         prompt: prompt,
         openFiles: openFiles,
         allFilePaths: allFilePaths,
       });
-
-      addAiCoderMessage({ role: 'ai', content: result });
-      
-      // This function is provided by the parent environment to apply changes
-      if (window.applyChanges) {
-        window.applyChanges(result);
-        commitChanges(result.commitMessage);
-        toast({
-          title: "AI Changes Applied & Committed",
-          description: result.commitMessage,
-        });
-      } else {
-         console.log("AI Generated Changes:", result);
-         toast({
-          title: "Changes Proposed by AI",
-          description: "Check the developer console to see the proposed changes (applyChanges function not found).",
-        });
-      }
 
     } catch (error) {
       console.error('Error getting AI edit:', error);
@@ -114,14 +92,37 @@ export default function AiCoderPage() {
     }
   };
 
+  const handleApplyChanges = () => {
+    if (proposedAiChanges) {
+      applyAiChanges();
+      toast({
+        title: "AI Changes Applied & Committed",
+        description: proposedAiChanges.commitMessage,
+      });
+    }
+  };
+  
+  const handleCancelChanges = () => {
+    cancelAiChanges();
+    toast({
+        variant: "destructive",
+        title: "AI Changes Canceled",
+        description: "The proposed changes have been discarded.",
+    });
+  }
+
   return (
     <div className="flex flex-col h-full gap-4">
        <ScrollArea className="flex-grow -mx-2 px-2" viewportRef={scrollAreaRef}>
         <div className="flex flex-col gap-4 pr-2">
-          {aiCoderHistory.map((message, index) => (
+          {aiCoderHistory.map((message, index) => {
+             const isLastMessage = index === aiCoderHistory.length - 1;
+             const showConfirmation = isLastMessage && proposedAiChanges && message.role === 'ai';
+
+            return (
             <div key={index} className={`flex items-start gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
               {message.role === 'ai' && (
-                <div className="p-2 rounded-full bg-primary/20">
+                <div className="p-2 rounded-full bg-primary/20 shrink-0">
                   <Bot className="w-5 h-5 text-primary" />
                 </div>
               )}
@@ -137,17 +138,29 @@ export default function AiCoderPage() {
                   <div className="space-y-2">
                     <p className="text-sm font-medium">{message.content.description}</p>
                      <p className="text-xs text-muted-foreground italic">Commit: "{message.content.commitMessage}"</p>
+                     {showConfirmation && (
+                        <div className="mt-3 pt-3 border-t border-muted-foreground/20 flex gap-2">
+                            <Button size="sm" onClick={handleApplyChanges}>
+                                <Check className="w-4 h-4 mr-2"/>
+                                Apply
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={handleCancelChanges}>
+                                <X className="w-4 h-4 mr-2"/>
+                                Cancel
+                            </Button>
+                        </div>
+                     )}
                   </div>
                 )}
               </div>
               {message.role === 'user' && (
-                <div className="p-2 rounded-full bg-muted">
+                <div className="p-2 rounded-full bg-muted shrink-0">
                   <User className="w-5 h-5" />
                 </div>
               )}
             </div>
-          ))}
-           {isGenerating && (
+          )})}
+           {isGenerating && !proposedAiChanges && (
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-full bg-primary/20">
                 <Bot className="w-5 h-5 text-primary" />
@@ -166,9 +179,9 @@ export default function AiCoderPage() {
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           className="h-24 text-sm"
-          disabled={isGenerating}
+          disabled={isGenerating || !!proposedAiChanges}
         />
-        <Button onClick={handleGenerateChanges} disabled={isGenerating}>
+        <Button onClick={handleGenerateChanges} disabled={isGenerating || !!proposedAiChanges}>
           {isGenerating ? <LoadingSpinner className="mr-2" /> : <Sparkles className="mr-2 h-4 w-4" />}
           {isGenerating ? "Generating..." : "Generate Changes"}
         </Button>
