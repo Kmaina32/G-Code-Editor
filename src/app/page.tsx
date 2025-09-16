@@ -22,12 +22,12 @@ const CodePilotPage = dynamic(
 function AuthLoader() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background">
-      <LoadingSpinner className="w-12 h-12" />
-      <div className="flex items-center gap-2 mt-4">
-        <Code className="w-6 h-6 text-primary" />
-        <h1 className="text-xl font-bold font-headline">CodePilot</h1>
+      <div className="flex items-center gap-2 mb-4">
+        <Code className="w-8 h-8 text-primary" />
+        <h1 className="text-2xl font-bold font-headline">CodePilot</h1>
       </div>
-      <p className="text-sm text-muted-foreground mt-2">Loading your project...</p>
+      <LoadingSpinner className="w-10 h-10" />
+      <p className="text-sm text-muted-foreground mt-4">Loading your project...</p>
     </div>
   )
 }
