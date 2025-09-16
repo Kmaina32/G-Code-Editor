@@ -2,6 +2,8 @@
 import { create } from 'zustand';
 import { defaultFileTree } from './default-files';
 import { defaultExtensions, Extension } from './extensions';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 export type File = {
   id: string;
@@ -164,10 +166,13 @@ interface StoreState {
   editorSettings: EditorSettings;
   commits: Commit[];
   activeThemeId: string;
+  userId: string | null;
 }
 
 interface StoreActions {
-  loadInitialFiles: () => void;
+  loadProject: (userId: string) => Promise<void>;
+  saveProject: () => Promise<void>;
+  setUserId: (userId: string | null) => void;
   addFile: (name: string, parentId: string | null) => void;
   addFolder: (name: string, parentId: string | null) => void;
   deleteItem: (id: string) => void;
@@ -213,274 +218,316 @@ const getLanguage = (fileName: string): string => {
   }
 };
 
-export const useStore = create<StoreState & StoreActions>((set, get) => ({
-  fileTree: [],
-  openFileIds: [],
-  activeFileId: null,
-  isLoading: true,
-  isGenerating: false,
-  fileToDelete: null,
-  extensions: defaultExtensions,
-  editorSettings: {
-    fontSize: 14,
-  },
-  commits: [],
-  activeThemeId: 'theme-dark',
-  
-  setIsGenerating: (isGenerating) => set({ isGenerating }),
-
-  setEditorSettings: (settings) => {
-    set((state) => ({
-      editorSettings: { ...state.editorSettings, ...settings },
-    }));
-  },
-
-  setActiveThemeId: (id: string) => set({ activeThemeId: id }),
-
-  loadInitialFiles: () => {
-    const initialFiles = flattenTree(defaultFileTree);
-    set({
-      fileTree: defaultFileTree,
-      openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
-      activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
-      isLoading: false,
-    });
-  },
-  
-  getFiles: () => flattenTree(get().fileTree),
-
-  findFile: (id) => {
-     const item = findItemById(get().fileTree, id);
-     return item?.type === 'file' ? item : undefined;
-  },
-
-  addFile: (name, parentId = null) => {
-    let parentPath = '';
-    if(parentId){
-      const parent = findItemById(get().fileTree, parentId);
-      if(parent) parentPath = parent.path;
-    }
-
-    const newFile: File = {
-      id: `file-${Date.now()}`,
-      name,
-      language: getLanguage(name),
-      content: '',
-      type: 'file',
-      path: parentId ? `${parentPath}/${name}` : `/${name}`,
-      isModified: true,
+const useStore = create<StoreState & StoreActions>((set, get) => {
+    
+    const saveProject = async () => {
+        const { userId, fileTree } = get();
+        if (!userId) return;
+        try {
+            const projectRef = doc(db, 'projects', userId);
+            await setDoc(projectRef, { fileTree: JSON.parse(JSON.stringify(fileTree)) });
+        } catch (error) {
+            console.error("Error saving project:", error);
+        }
     };
-    set((state) => ({
-      fileTree: addItemToTree(state.fileTree, parentId, newFile),
-      openFileIds: [...state.openFileIds, newFile.id],
-      activeFileId: newFile.id,
-    }));
-  },
-
-  addFolder: (name, parentId = null) => {
-    let parentPath = '';
-    if(parentId){
-       const parent = findItemById(get().fileTree, parentId);
-       if(parent) parentPath = parent.path;
-    }
-
-    const newFolder: Folder = {
-      id: `folder-${Date.now()}`,
-      name,
-      type: 'folder',
-      path: parentId ? `${parentPath}/${name}` : `/${name}`,
-      children: [],
-      isOpen: true
-    };
-    set(state => ({
-        fileTree: addItemToTree(state.fileTree, parentId, newFolder)
-    }));
-  },
-
-
-  deleteItem: (id) => {
-    const itemToDelete = findItemById(get().fileTree, id);
-    if(!itemToDelete) return;
-
-    // Handle read-only case (for commit history view)
-    if (itemToDelete.type === 'file' && itemToDelete.isReadOnly) {
-      get().closeFile(id);
-      return;
-    }
-     if (itemToDelete.type === 'folder' && get().commits.some(c => c.id === itemToDelete.id)) {
-      set(state => ({
-        fileTree: removeItemFromTree(state.fileTree, id)
-      }));
-      return;
-    }
-
-    set((state) => {
-      const filesToClose = itemToDelete.type === 'folder' 
-        ? flattenTree([itemToDelete]).map(f => f.id)
-        : [id];
-
-      const newOpenFileIds = state.openFileIds.filter((fileId) => !filesToClose.includes(fileId));
-      let newActiveFileId = state.activeFileId;
-
-      if (state.activeFileId && filesToClose.includes(state.activeFileId)) {
-        const closingIndex = state.openFileIds.indexOf(state.activeFileId);
-        newActiveFileId = newOpenFileIds[Math.max(0, closingIndex - 1)] || null;
-      }
-
-      return {
-        fileTree: removeItemFromTree(state.fileTree, id),
-        openFileIds: newOpenFileIds,
-        activeFileId: newActiveFileId,
-        fileToDelete: null,
-      };
-    });
-  },
-
-  setFileToDelete: (id) => set({ fileToDelete: id }),
-  
-  renameItem: (id, newName) => {
-    set((state) => ({
-      fileTree: renameItemInTree(state.fileTree, id, newName)
-    }));
-  },
-  
-  updateFileContent: (id, content) => {
-    set((state) => ({
-      fileTree: updateFileContentInTree(state.fileTree, id, content),
-    }));
-  },
-
-  openFile: (id) => {
-    if (!get().openFileIds.includes(id)) {
-      set((state) => ({ openFileIds: [...state.openFileIds, id] }));
-    }
-    set({ activeFileId: id });
-  },
-
-  toggleFolder: (id) => {
-    set(state => ({
-      fileTree: toggleFolderInTree(state.fileTree, id)
-    }));
-  },
-
-  closeFile: (id) => {
-    set(state => {
-      const newOpenFileIds = state.openFileIds.filter((fileId) => fileId !== id);
-      let newActiveFileId = state.activeFileId;
-
-      if (state.activeFileId === id) {
-        const closingIndex = state.openFileIds.indexOf(id);
-        newActiveFileId = newOpenFileIds[Math.max(0, closingIndex - 1)] || null;
-      }
+    
+    return {
+      fileTree: [],
+      openFileIds: [],
+      activeFileId: null,
+      isLoading: true,
+      isGenerating: false,
+      fileToDelete: null,
+      extensions: defaultExtensions,
+      editorSettings: {
+        fontSize: 14,
+      },
+      commits: [],
+      activeThemeId: 'theme-dark',
+      userId: null,
       
-      const itemToClose = findItemById(state.fileTree, id);
-      let newFileTree = state.fileTree;
+      setUserId: (userId) => set({ userId }),
+      
+      loadProject: async (userId: string) => {
+        set({ isLoading: true, userId });
+        const projectRef = doc(db, 'projects', userId);
+        const projectSnap = await getDoc(projectRef);
 
-      if(itemToClose && 'isReadOnly' in itemToClose && itemToClose.isReadOnly) {
-          // This is a temporary file from a commit history view, remove it completely
-          newFileTree = removeItemFromTree(state.fileTree, id);
-          
-          // If the parent folder is also a temporary commit view, remove it if it's empty
-          const parentFolderId = 'hist-commit';
-          const parentFolder = findItemById(newFileTree, parentFolderId)
-          if(parentFolder && parentFolder.type === 'folder' && parentFolder.children.length === 0){
-             newFileTree = removeItemFromTree(newFileTree, parentFolderId)
+        if (projectSnap.exists()) {
+            const projectData = projectSnap.data();
+            const fileTree = projectData.fileTree;
+            const initialFiles = flattenTree(fileTree);
+            set({
+              fileTree,
+              openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
+              activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
+              isLoading: false,
+            });
+        } else {
+            const initialFiles = flattenTree(defaultFileTree);
+            set({
+                fileTree: defaultFileTree,
+                openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
+                activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
+                isLoading: false,
+            });
+            await saveProject();
+        }
+      },
+      
+      saveProject,
+
+      setIsGenerating: (isGenerating) => set({ isGenerating }),
+    
+      setEditorSettings: (settings) => {
+        set((state) => ({
+          editorSettings: { ...state.editorSettings, ...settings },
+        }));
+      },
+    
+      setActiveThemeId: (id: string) => set({ activeThemeId: id }),
+    
+      getFiles: () => flattenTree(get().fileTree),
+    
+      findFile: (id) => {
+         const item = findItemById(get().fileTree, id);
+         return item?.type === 'file' ? item : undefined;
+      },
+    
+      addFile: (name, parentId = null) => {
+        let parentPath = '';
+        if(parentId){
+          const parent = findItemById(get().fileTree, parentId);
+          if(parent) parentPath = parent.path;
+        }
+    
+        const newFile: File = {
+          id: `file-${Date.now()}`,
+          name,
+          language: getLanguage(name),
+          content: '',
+          type: 'file',
+          path: parentId ? `${parentPath}/${name}` : `/${name}`,
+          isModified: true,
+        };
+        set((state) => ({
+          fileTree: addItemToTree(state.fileTree, parentId, newFile),
+          openFileIds: [...state.openFileIds, newFile.id],
+          activeFileId: newFile.id,
+        }));
+        saveProject();
+      },
+    
+      addFolder: (name, parentId = null) => {
+        let parentPath = '';
+        if(parentId){
+           const parent = findItemById(get().fileTree, parentId);
+           if(parent) parentPath = parent.path;
+        }
+    
+        const newFolder: Folder = {
+          id: `folder-${Date.now()}`,
+          name,
+          type: 'folder',
+          path: parentId ? `${parentPath}/${name}` : `/${name}`,
+          children: [],
+          isOpen: true
+        };
+        set(state => ({
+            fileTree: addItemToTree(state.fileTree, parentId, newFolder)
+        }));
+        saveProject();
+      },
+    
+    
+      deleteItem: (id) => {
+        const itemToDelete = findItemById(get().fileTree, id);
+        if(!itemToDelete) return;
+    
+        // Handle read-only case (for commit history view)
+        if (itemToDelete.type === 'file' && itemToDelete.isReadOnly) {
+          get().closeFile(id);
+          return;
+        }
+         if (itemToDelete.type === 'folder' && get().commits.some(c => c.id === itemToDelete.id)) {
+          set(state => ({
+            fileTree: removeItemFromTree(state.fileTree, id)
+          }));
+          return;
+        }
+    
+        set((state) => {
+          const filesToClose = itemToDelete.type === 'folder' 
+            ? flattenTree([itemToDelete]).map(f => f.id)
+            : [id];
+    
+          const newOpenFileIds = state.openFileIds.filter((fileId) => !filesToClose.includes(fileId));
+          let newActiveFileId = state.activeFileId;
+    
+          if (state.activeFileId && filesToClose.includes(state.activeFileId)) {
+            const closingIndex = state.openFileIds.indexOf(state.activeFileId);
+            newActiveFileId = newOpenFileIds[Math.max(0, closingIndex - 1)] || null;
           }
+    
+          return {
+            fileTree: removeItemFromTree(state.fileTree, id),
+            openFileIds: newOpenFileIds,
+            activeFileId: newActiveFileId,
+            fileToDelete: null,
+          };
+        });
+        saveProject();
+      },
+    
+      setFileToDelete: (id) => set({ fileToDelete: id }),
+      
+      renameItem: (id, newName) => {
+        set((state) => ({
+          fileTree: renameItemInTree(state.fileTree, id, newName)
+        }));
+        saveProject();
+      },
+      
+      updateFileContent: (id, content) => {
+        set((state) => ({
+          fileTree: updateFileContentInTree(state.fileTree, id, content),
+        }));
+        saveProject();
+      },
+    
+      openFile: (id) => {
+        if (!get().openFileIds.includes(id)) {
+          set((state) => ({ openFileIds: [...state.openFileIds, id] }));
+        }
+        set({ activeFileId: id });
+      },
+    
+      toggleFolder: (id) => {
+        set(state => ({
+          fileTree: toggleFolderInTree(state.fileTree, id)
+        }));
+        saveProject();
+      },
+    
+      closeFile: (id) => {
+        set(state => {
+          const newOpenFileIds = state.openFileIds.filter((fileId) => fileId !== id);
+          let newActiveFileId = state.activeFileId;
+    
+          if (state.activeFileId === id) {
+            const closingIndex = state.openFileIds.indexOf(id);
+            newActiveFileId = newOpenFileIds[Math.max(0, closingIndex - 1)] || null;
+          }
+          
+          const itemToClose = findItemById(state.fileTree, id);
+          let newFileTree = state.fileTree;
+    
+          if(itemToClose && 'isReadOnly' in itemToClose && itemToClose.isReadOnly) {
+              // This is a temporary file from a commit history view, remove it completely
+              newFileTree = removeItemFromTree(state.fileTree, id);
+              
+              // If the parent folder is also a temporary commit view, remove it if it's empty
+              const parentFolderId = 'hist-commit';
+              const parentFolder = findItemById(newFileTree, parentFolderId)
+              if(parentFolder && parentFolder.type === 'folder' && parentFolder.children.length === 0){
+                 newFileTree = removeItemFromTree(newFileTree, parentFolderId)
+              }
+          }
+    
+          return { openFileIds: newOpenFileIds, activeFileId: newActiveFileId, fileTree: newFileTree };
+        })
+      },
+    
+      setActiveFile: (id) => {
+        set({ activeFileId: id });
+      },
+    
+      installExtension: (id: string) => {
+        set((state) => ({
+          extensions: state.extensions.map((ext) =>
+            ext.id === id ? { ...ext, installed: true } : ext
+          ),
+        }));
+      },
+    
+      uninstallExtension: (id: string) => {
+        set((state) => ({
+          extensions: state.extensions.map((ext) =>
+            ext.id === id ? { ...ext, installed: false } : ext
+          ),
+          activeThemeId:
+            state.activeThemeId === id ? 'theme-dark' : state.activeThemeId,
+        }));
+      },
+      
+      commitChanges: (message: string) => {
+        const files = get().getFiles();
+        const modifiedFiles = files.filter(file => file.isModified && !file.isReadOnly);
+        if (modifiedFiles.length === 0) return;
+    
+        const newCommit: Commit = {
+          id: `commit-${Date.now()}`,
+          message,
+          createdAt: new Date().toISOString(),
+          files: JSON.parse(JSON.stringify(modifiedFiles.map(f => ({ ...f, isModified: false }))))
+        };
+    
+        const markAsUnmodified = (items: FileSystemItem[]): FileSystemItem[] => {
+          return items.map(item => {
+            if (item.type === 'file') {
+              return { ...item, isModified: false };
+            }
+            if (item.type === 'folder' && item.children) {
+              return { ...item, children: markAsUnmodified(item.children) };
+            }
+            return item;
+          });
+        };
+    
+        set(state => ({
+          commits: [newCommit, ...state.commits],
+          fileTree: markAsUnmodified(state.fileTree),
+        }));
+        saveProject();
+      },
+    
+    
+      viewCommit: (commitId: string) => {
+        const { commits, fileTree, openFileIds } = get();
+        const commit = commits.find(c => c.id === commitId);
+        if (!commit) return;
+    
+        const existingHistFolder = findItemById(fileTree, 'hist-commit');
+        let nonHistoricalFileTree = fileTree;
+        if(existingHistFolder) {
+          nonHistoricalFileTree = removeItemFromTree(fileTree, 'hist-commit');
+        }
+    
+        const nonHistoricalOpenFileIds = openFileIds.filter(id => findItemById(nonHistoricalFileTree, id));
+        
+        const historicalFiles: File[] = commit.files.map(file => ({
+          ...file,
+          id: `hist-${commit.id}-${file.id}`,
+          originalId: file.id,
+          isReadOnly: true,
+          isModified: false,
+        }));
+    
+        const historicalFolder: Folder = {
+          id: `hist-commit`,
+          name: `Commit: ${commit.message.substring(0, 20)}...`,
+          type: 'folder',
+          path: '/commit_history',
+          isOpen: true,
+          children: historicalFiles
+        };
+    
+        set({
+          fileTree: [historicalFolder, ...nonHistoricalFileTree],
+          openFileIds: [...nonHistoricalOpenFileIds, ...historicalFiles.map(f => f.id)],
+          activeFileId: historicalFiles[0]?.id || null,
+        });
       }
+}});
 
-      return { openFileIds: newOpenFileIds, activeFileId: newActiveFileId, fileTree: newFileTree };
-    })
-  },
-
-  setActiveFile: (id) => {
-    set({ activeFileId: id });
-  },
-
-  installExtension: (id: string) => {
-    set((state) => ({
-      extensions: state.extensions.map((ext) =>
-        ext.id === id ? { ...ext, installed: true } : ext
-      ),
-    }));
-  },
-
-  uninstallExtension: (id: string) => {
-    set((state) => ({
-      extensions: state.extensions.map((ext) =>
-        ext.id === id ? { ...ext, installed: false } : ext
-      ),
-      activeThemeId:
-        state.activeThemeId === id ? 'theme-dark' : state.activeThemeId,
-    }));
-  },
-  
-  commitChanges: (message: string) => {
-    const files = get().getFiles();
-    const modifiedFiles = files.filter(file => file.isModified && !file.isReadOnly);
-    if (modifiedFiles.length === 0) return;
-
-    const newCommit: Commit = {
-      id: `commit-${Date.now()}`,
-      message,
-      createdAt: new Date().toISOString(),
-      files: JSON.parse(JSON.stringify(modifiedFiles.map(f => ({ ...f, isModified: false }))))
-    };
-
-    const markAsUnmodified = (items: FileSystemItem[]): FileSystemItem[] => {
-      return items.map(item => {
-        if (item.type === 'file') {
-          return { ...item, isModified: false };
-        }
-        if (item.type === 'folder' && item.children) {
-          return { ...item, children: markAsUnmodified(item.children) };
-        }
-        return item;
-      });
-    };
-
-    set(state => ({
-      commits: [newCommit, ...state.commits],
-      fileTree: markAsUnmodified(state.fileTree),
-    }));
-  },
-
-
-  viewCommit: (commitId: string) => {
-    const { commits, fileTree, openFileIds } = get();
-    const commit = commits.find(c => c.id === commitId);
-    if (!commit) return;
-
-    const existingHistFolder = findItemById(fileTree, 'hist-commit');
-    let nonHistoricalFileTree = fileTree;
-    if(existingHistFolder) {
-      nonHistoricalFileTree = removeItemFromTree(fileTree, 'hist-commit');
-    }
-
-    const nonHistoricalOpenFileIds = openFileIds.filter(id => findItemById(nonHistoricalFileTree, id));
-    
-    const historicalFiles: File[] = commit.files.map(file => ({
-      ...file,
-      id: `hist-${commit.id}-${file.id}`,
-      originalId: file.id,
-      isReadOnly: true,
-      isModified: false,
-    }));
-
-    const historicalFolder: Folder = {
-      id: `hist-commit`,
-      name: `Commit: ${commit.message.substring(0, 20)}...`,
-      type: 'folder',
-      path: '/commit_history',
-      isOpen: true,
-      children: historicalFiles
-    };
-
-    set({
-      fileTree: [historicalFolder, ...nonHistoricalFileTree],
-      openFileIds: [...nonHistoricalOpenFileIds, ...historicalFiles.map(f => f.id)],
-      activeFileId: historicalFiles[0]?.id || null,
-    });
-  }
-}));
-
-    
+export { useStore };
