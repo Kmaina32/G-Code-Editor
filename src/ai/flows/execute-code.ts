@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -52,7 +53,7 @@ const executeCodeFlow = ai.defineFlow(
     if (input.language !== 'shell') {
       // For now, we only support shell commands on the backend.
       // Other languages are handled client-side.
-       const mockedOutput = `Mock execution successful for command: "${input.command}"\n\n[INFO] Language: ${input.language}\n[INFO] This is a mocked response.\n[TODO] Replace this flow with a real code execution backend.`;
+       const mockedOutput = `[INFO] Backend execution for language "${input.language}" is not supported.\n[INFO] This code runs in the browser.\n[INFO] Command "${input.command}" was not executed.`;
        return {
             output: mockedOutput
        }
@@ -60,7 +61,7 @@ const executeCodeFlow = ai.defineFlow(
     
     try {
       // Whitelist safe commands to prevent abuse
-      const allowedCommands = ['ls', 'pwd', 'echo', 'node', 'python'];
+      const allowedCommands = ['ls', 'pwd', 'echo', 'node', 'python', 'npm', 'npx', 'tsc', 'git'];
       const commandParts = input.command.trim().split(' ');
       const commandName = commandParts[0];
 
@@ -81,3 +82,5 @@ const executeCodeFlow = ai.defineFlow(
     }
   }
 );
+
+    

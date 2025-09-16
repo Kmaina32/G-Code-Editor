@@ -666,7 +666,13 @@ function CodePilotPageInternal() {
                 >
                   <Tabs
                     value={activeTab}
-                    onValueChange={setActiveTab}
+                    onValueChange={(newTab) => {
+                      setActiveTab(newTab);
+                      if (newTab === 'terminal') {
+                        // Use a timeout to ensure the terminal is visible before focusing
+                        setTimeout(() => terminalRef.current?.focus(), 0);
+                      }
+                    }}
                     className="h-full flex flex-col"
                   >
                     <div className="flex justify-between items-center pr-2 border-b">
@@ -906,3 +912,5 @@ export function CodePilotPage() {
     </SidebarProvider>
   );
 }
+
+    
