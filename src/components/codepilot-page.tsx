@@ -860,7 +860,3 @@ export function CodePilotPage() {
     </TooltipProvider>
   );
 }
-
-    
-
-    
