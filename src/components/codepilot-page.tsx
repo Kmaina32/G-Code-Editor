@@ -174,7 +174,6 @@ export function CodePilotPage() {
   const {
     openFileIds,
     activeFileId,
-    loadInitialFiles,
     updateFileContent,
     closeFile,
     setActiveFile,
@@ -204,7 +203,6 @@ export function CodePilotPage() {
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
 
   useEffect(() => {
-    loadInitialFiles();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
@@ -267,7 +265,7 @@ export function CodePilotPage() {
       jsWorkerRef.current?.terminate();
       window.removeEventListener('message', handleIframeMessages);
     };
-  }, [loadInitialFiles, auth]);
+  }, [auth]);
 
   useEffect(() => {
     // Live preview logic
