@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -75,7 +76,7 @@ export const TerminalComponent = forwardRef<
   const term = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const command = useRef('');
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const handleResize = useCallback(() => {
     fitAddon.current?.fit();
@@ -83,11 +84,12 @@ export const TerminalComponent = forwardRef<
 
   useEffect(() => {
     if (terminalRef.current && !term.current) {
+      const isDark = resolvedTheme === 'dark';
       const newTerm = new Terminal({
         cursorBlink: true,
         fontFamily: 'monospace',
         fontSize: 14,
-        theme: theme === 'dark' ? solarizedDark : solarizedLight,
+        theme: isDark ? solarizedDark : solarizedLight,
         convertEol: true,
       });
       const newFitAddon = new FitAddon();
@@ -135,13 +137,15 @@ export const TerminalComponent = forwardRef<
     return () => {
         window.removeEventListener('resize', handleResize);
     }
-  }, [disabled, onCommand, handleResize, theme]);
+  }, [disabled, onCommand, handleResize, resolvedTheme]);
 
   useEffect(() => {
     if (term.current) {
-      term.current.options.theme = theme === 'dark' ? solarizedDark : solarizedLight;
+      const isDark = resolvedTheme === 'dark';
+      term.current.options.theme = isDark ? solarizedDark : solarizedLight;
+      handleResize();
     }
-  }, [theme]);
+  }, [resolvedTheme, handleResize]);
 
   useImperativeHandle(ref, () => ({
     write: (data: string) => {

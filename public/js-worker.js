@@ -1,31 +1,34 @@
-// Simple web worker to execute user's javascript code
-// It hijacks console.log and console.error to post messages back to the main thread
 
-self.onmessage = (event) => {
-    const { code } = event.data;
+// A simple web worker to execute JavaScript code safely.
 
-    // Hijack console.log
-    const originalLog = console.log;
-    console.log = (...args) => {
-        self.postMessage({ type: 'log', message: args.join(' ') });
-        originalLog.apply(console, args);
-    };
+self.onmessage = function(event) {
+  const { code } = event.data;
 
-    // Hijack console.error
-    const originalError = console.error;
-    console.error = (...args) => {
-        self.postMessage({ type: 'error', message: `ERROR: ${args.join(' ')}` });
-        originalError.apply(console, args);
-    };
+  // Hijack console.log to post messages back to the main thread
+  const oldLog = console.log;
+  console.log = function(...args) {
+    self.postMessage({ type: 'log', message: args.join(' ') });
+    oldLog.apply(console, args);
+  };
+  
+  const oldError = console.error;
+    console.error = function(...args) {
+    self.postMessage({ type: 'error', message: `Error: ${args.join(' ')}` });
+    oldError.apply(console, args);
+  };
 
-    try {
-        // Execute the user's code
-        eval(code);
-    } catch (e) {
-        console.error(e);
+
+  try {
+    // Using Function constructor for safer execution than eval
+    const func = new Function(code);
+    func();
+  } catch (e) {
+     if (e instanceof Error) {
+      self.postMessage({ type: 'error', message: `Error: ${e.message}` });
+    } else {
+      self.postMessage({ type: 'error', message: `An unknown error occurred.`})
     }
-
-    // Restore original console functions
-    console.log = originalLog;
-    console.error = originalError;
+  }
 };
+
+    

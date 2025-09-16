@@ -28,8 +28,12 @@ export default function RootLayout({
   const { activeThemeId } = useStore();
 
   useEffect(() => {
-    document.documentElement.className = '';
-    document.documentElement.classList.add(activeThemeId);
+    document.body.classList.forEach(className => {
+      if (className.startsWith('theme-')) {
+        document.body.classList.remove(className);
+      }
+    });
+    document.body.classList.add(activeThemeId);
   }, [activeThemeId]);
 
   return (
@@ -50,9 +54,13 @@ export default function RootLayout({
         <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
       </head>
       <body className={cn('font-body antialiased', activeThemeId)}>
-        {children}
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+            {children}
+            <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
 }
+
+    
