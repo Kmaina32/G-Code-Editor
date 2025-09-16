@@ -14,10 +14,6 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-       <h2 className="text-sm font-bold text-muted-foreground px-2">
-        SETTINGS
-      </h2>
-
       <div className="space-y-4">
         <h3 className="text-xs font-bold uppercase text-muted-foreground px-2">Appearance</h3>
         <div className="p-2 border rounded-lg bg-background/30 space-y-4">
@@ -34,6 +30,7 @@ export default function SettingsPage() {
                         {installedThemes.map(theme => (
                             <SelectItem key={theme.id} value={theme.id}>{theme.name}</SelectItem>
                         ))}
+                         <SelectItem value="neon-future" disabled>Neon Future (Active)</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

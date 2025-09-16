@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { suggestCodeImprovements } from "@/ai/flows/suggest-code-improvements";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "../ui/scroll-area";
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 
 const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item, level }) => {
     const {
@@ -91,8 +91,8 @@ const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item,
         <li key={item.id} className="group/menu-item relative">
           <button
             onClick={() => toggleFolder(item.id)}
-            className={cn(`flex items-center w-full text-left p-1 rounded-md text-sm hover:bg-accent`, {
-                'bg-accent/50': item.isOpen
+            className={cn(`flex items-center w-full text-left p-1 rounded-md text-sm hover:bg-sidebar-accent`, {
+                'bg-sidebar-accent/50': item.isOpen
             })}
             style={{ paddingLeft: `${level * 1.5 + 0.25}rem`}}
           >
@@ -158,8 +158,8 @@ const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item,
     <li key={item.id} className="group/menu-item relative">
       <button
         onClick={() => openFile(item.id)}
-        className={`flex items-center w-full text-left p-1 rounded-md text-sm hover:bg-accent ${
-          activeFileId === item.id ? 'bg-accent' : ''
+        className={`flex items-center w-full text-left p-1 rounded-md text-sm hover:bg-sidebar-accent ${
+          activeFileId === item.id ? 'bg-sidebar-accent' : ''
         }`}
         style={{ paddingLeft: `${level * 1.5 + 0.25}rem`}}
       >
@@ -262,10 +262,7 @@ export default function ExplorerPage() {
   return (
     <>
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-bold text-muted-foreground px-2">
-            EXPLORER
-          </h2>
+        <div className="flex items-center justify-end mb-2">
           <div className="flex">
                <Tooltip>
                   <TooltipTrigger asChild>
@@ -273,7 +270,7 @@ export default function ExplorerPage() {
                           <Sparkles className="w-4 h-4" />
                       </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right"><p>AI Suggest (Ctrl+I)</p></TooltipContent>
+                  <TooltipContent><p>AI Suggest (Ctrl+I)</p></TooltipContent>
               </Tooltip>
               <Tooltip>
                   <TooltipTrigger asChild>
@@ -281,7 +278,7 @@ export default function ExplorerPage() {
                           <FilePlus className="w-4 h-4" />
                       </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right"><p>New File</p></TooltipContent>
+                  <TooltipContent><p>New File</p></TooltipContent>
               </Tooltip>
               <Tooltip>
                   <TooltipTrigger asChild>
@@ -289,7 +286,7 @@ export default function ExplorerPage() {
                           <FolderPlus className="w-4 h-4" />
                       </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right"><p>New Folder</p></TooltipContent>
+                  <TooltipContent><p>New Folder</p></TooltipContent>
               </Tooltip>
           </div>
         </div>
@@ -332,8 +329,11 @@ export default function ExplorerPage() {
             </ul>
           </ScrollArea>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowSuggestions(false)}>
+            <AlertDialogCancel onClick={() => setShowSuggestions(false)}>
               Close
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => setShowSuggestions(false)}>
+              Got it
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -341,5 +341,3 @@ export default function ExplorerPage() {
     </>
   );
 }
-
-    

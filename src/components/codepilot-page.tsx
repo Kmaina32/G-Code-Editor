@@ -37,7 +37,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { suggestCodeImprovements } from '@/ai/flows/suggest-code-improvements';
 import { executeCode } from '@/ai/flows/execute-code';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
@@ -184,8 +183,6 @@ export function CodePilotPage() {
     editorSettings,
     getFiles,
     findFile,
-    isGenerating,
-    setIsGenerating,
   } = useStore();
 
   const files = getFiles();
@@ -504,9 +501,8 @@ export function CodePilotPage() {
     <TooltipProvider>
       <div className="flex flex-col h-screen bg-background font-sans overflow-hidden">
         <header className="flex items-center justify-between h-14 px-4 border-b shrink-0">
-          <div className="flex items-center gap-2">
-            <Code className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold font-headline">CodePilot</h1>
+          <div className="flex items-center gap-4">
+            {/* The sidebar will have its own header now */}
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -634,8 +630,8 @@ export function CodePilotPage() {
                     onValueChange={setActiveTab}
                     className="h-full flex flex-col"
                   >
-                    <div className="flex justify-between items-center pr-2">
-                      <TabsList>
+                    <div className="flex justify-between items-center pr-2 border-b">
+                      <TabsList className="bg-transparent border-none">
                         <TabsTrigger value="preview">Preview</TabsTrigger>
                         <TabsTrigger value="output">Output</TabsTrigger>
                         <TabsTrigger value="terminal">Terminal</TabsTrigger>
@@ -646,7 +642,7 @@ export function CodePilotPage() {
                             onClick={handleRunCode}
                             size="sm"
                             disabled={isExecuting || !activeFile || isPyodideLoading || activeFile?.isReadOnly}
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground"
                           >
                             {isExecuting || isPyodideLoading ? (
                               <LoadingSpinner className="mr-2" />
