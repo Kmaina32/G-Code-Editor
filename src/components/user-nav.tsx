@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -85,3 +86,5 @@ export function UserNav({ user, auth }: UserNavProps) {
     </DropdownMenu>
   );
 }
+
+    
