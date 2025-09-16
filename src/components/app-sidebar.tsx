@@ -6,7 +6,8 @@ import ExtensionsPage from "./sidebar/extensions-page";
 import SearchPage from "./sidebar/search-page";
 import GitPage from "./sidebar/git-page";
 import SettingsPage from "./sidebar/settings-page";
-import { Folder, Search, GitBranch, Puzzle, Settings } from 'lucide-react';
+import AiCoderPage from "./sidebar/ai-coder-page";
+import { Folder, Search, GitBranch, Puzzle, Settings, Sparkles } from 'lucide-react';
 import { Sidebar, SidebarMenu, SidebarMenuButton } from "./ui/sidebar";
 import { useStore } from "@/lib/store";
 
@@ -18,6 +19,7 @@ const pages: Record<string, { component: JSX.Element; title: string, icon: React
   },
   search: { component: <SearchPage />, title: "Search", icon: Search },
   git: { component: <GitPage />, title: "Source Control", icon: GitBranch },
+  "ai-coder": { component: <AiCoderPage />, title: "AI Coder", icon: Sparkles },
   extensions: {
     component: <ExtensionsPage />,
     title: "Extensions",
@@ -64,5 +66,3 @@ export function AppSidebar({ activePage, onPageChange }: { activePage: string, o
     </div>
   );
 }
-
-    

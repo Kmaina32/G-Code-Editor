@@ -210,12 +210,9 @@ const ExplorerItem: React.FC<{ item: FileSystemItem; level: number }> = ({ item,
 
 
 export default function ExplorerPage() {
-  const { fileTree, addFile, addFolder, activeFileId, findFile, isGenerating, setIsGenerating } = useStore();
+  const { fileTree, addFile, addFolder } = useStore();
   const [isCreating, setIsCreating] = useState<'file' | 'folder' | null>(null);
   const [creatingName, setCreatingName] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const { toast } = useToast();
 
   const handleCreate = (type: 'file' | 'folder') => {
     setIsCreating(type);
@@ -234,44 +231,11 @@ export default function ExplorerPage() {
     setCreatingName('');
   }
 
-  const activeFile = findFile(activeFileId || '');
-
-  const handleGenerateSuggestions = async () => {
-    if (!activeFile) return;
-    setIsGenerating(true);
-    setSuggestions([]);
-    try {
-      const result = await suggestCodeImprovements({
-        code: activeFile.content,
-        language: activeFile.language,
-      });
-      setSuggestions(result.suggestions);
-      setShowSuggestions(true);
-    } catch (error) {
-      console.error('Error getting suggestions:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not generate AI suggestions.',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   return (
     <>
       <div>
         <div className="flex items-center justify-end mb-2">
           <div className="flex">
-               <Tooltip>
-                  <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={handleGenerateSuggestions} className="h-7 w-7" disabled={isGenerating || !activeFile}>
-                          <Sparkles className="w-4 h-4" />
-                      </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>AI Suggest (Ctrl+I)</p></TooltipContent>
-              </Tooltip>
               <Tooltip>
                   <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" onClick={() => handleCreate('file')} className="h-7 w-7">
@@ -311,33 +275,6 @@ export default function ExplorerPage() {
           ))}
         </ul>
       </div>
-      <AlertDialog open={showSuggestions} onOpenChange={setShowSuggestions}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>AI Code Suggestions</AlertDialogTitle>
-            <AlertDialogDescription>
-              Here are some suggestions to improve your code:
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <ScrollArea className="h-60">
-            <ul className="space-y-2 p-4">
-              {suggestions.map((s, i) => (
-                <li key={i} className="text-sm p-2 bg-muted rounded">
-                  {s}
-                </li>
-              ))}
-            </ul>
-          </ScrollArea>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowSuggestions(false)}>
-              Close
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => setShowSuggestions(false)}>
-              Got it
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

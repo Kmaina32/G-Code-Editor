@@ -912,5 +912,3 @@ export function CodePilotPage() {
     </SidebarProvider>
   );
 }
-
-    

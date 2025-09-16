@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -43,13 +44,15 @@ const suggestCodeImprovementsPrompt = ai.definePrompt({
   output: {schema: SuggestCodeImprovementsOutputSchema},
   prompt: `You are an AI-powered code assistant that provides suggestions to improve code quality, readability, and performance.
 
-Analyze the following code and provide specific, actionable suggestions for improvement. Consider aspects such as code style, potential bugs, and opportunities for optimization.
+Analyze the following code and provide a list of specific, actionable suggestions for improvement. For each suggestion, explain why it's an improvement. Consider aspects such as code style, potential bugs, opportunities for optimization, and best practices.
 
 Language: {{{language}}}
 Code:
+\`\`\`{{{language}}}
 {{{code}}}
+\`\`\`
 
-Please provide your suggestions in a concise and clear manner. Focus on the most impactful changes that can be made to enhance the code.
+Please provide your suggestions in a clear, concise list. Focus on the most impactful changes.
 `,
 });
 
@@ -60,6 +63,9 @@ const suggestCodeImprovementsFlow = ai.defineFlow(
     outputSchema: SuggestCodeImprovementsOutputSchema,
   },
   async input => {
+    if (!input.code.trim()) {
+      return { suggestions: ["There's no code to analyze. Open a file and write some code first."] };
+    }
     const {output} = await suggestCodeImprovementsPrompt(input);
     return output!;
   }
