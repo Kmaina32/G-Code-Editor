@@ -33,7 +33,7 @@ import {
 import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Code, Github } from 'lucide-react';
+import { Code } from 'lucide-react';
 import { useState } from 'react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
