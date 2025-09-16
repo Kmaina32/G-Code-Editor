@@ -18,7 +18,8 @@ const FileSchema = z.object({
 
 const EditCodeInputSchema = z.object({
   prompt: z.string().describe("The user's request for code changes."),
-  files: z.array(FileSchema).describe('An array of all files in the project.'),
+  openFiles: z.array(FileSchema).describe('An array of files currently open in the editor. This is the primary context for changes.'),
+  allFilePaths: z.array(z.string()).describe('An array of all file paths in the project. This provides overall project structure context.'),
 });
 export type EditCodeInput = z.infer<typeof EditCodeInputSchema>;
 
@@ -43,7 +44,11 @@ export async function editCode(
 
 const editCodeSystemPrompt = `You are an expert AI software engineer specializing in Next.js, React, Tailwind CSS, and shadcn/ui.
 Your task is to modify the user's project based on their instructions.
-You have access to the entire file system of the project.
+
+You have been given two pieces of information:
+1. A list of all file paths in the project. Use this to understand the overall structure and to identify files you may need to edit.
+2. The full content of files that are currently open in the user's editor. Use this as the primary source material for your changes.
+
 You MUST respond with the complete, final content for every file you change. Do not provide diffs, partial snippets, or explanations.
 You MUST generate a concise, imperative-mood commit message that summarizes the changes you made.
 Your response MUST be in the JSON format defined by the output schema.
@@ -67,8 +72,11 @@ const editCodePrompt = ai.definePrompt({
   system: editCodeSystemPrompt,
   prompt: `User Prompt: {{{prompt}}}
 
-Project Files:
-{{{json files}}}
+All Project File Paths:
+{{{json allFilePaths}}}
+
+Content of Open Files:
+{{{json openFiles}}}
 `,
 });
 

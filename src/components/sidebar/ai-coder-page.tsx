@@ -19,6 +19,7 @@ declare global {
 
 export default function AiCoderPage() {
   const { 
+    getFiles,
     openFileIds,
     findFile,
     isGenerating, 
@@ -53,6 +54,8 @@ export default function AiCoderPage() {
     setPrompt("");
 
     try {
+      const allFiles = getFiles();
+      const allFilePaths = allFiles.map(f => f.path);
       const openFiles = openFileIds.map(id => findFile(id)).filter(Boolean).map(f => ({ path: f!.path, content: f!.content }));
       
       if (openFiles.length === 0) {
@@ -68,7 +71,8 @@ export default function AiCoderPage() {
       
       const result = await editCode({
         prompt: prompt,
-        files: openFiles,
+        openFiles: openFiles,
+        allFilePaths: allFilePaths,
       });
 
       addAiCoderMessage({ role: 'ai', content: result });

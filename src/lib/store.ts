@@ -1,4 +1,5 @@
 
+
 import { create } from 'zustand';
 import { defaultFileTree } from './default-files';
 import { defaultExtensions, Extension } from './extensions';
@@ -301,7 +302,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
                 activeThemeId: 'neon-future',
                 aiCoderHistory: [],
                 openFileIds: initialFiles.length > 0 ? [initialFiles[0].id] : [],
-                activeFileId: initialFiles.length > 0 ? initialFiles[0].id : null,
+                activeFileId: initialFiles.length > 0 ? [initialFiles[0].id] : null,
                 isLoading: false,
             });
             await get().saveProject();
@@ -529,7 +530,7 @@ const useStore = create<StoreState & StoreActions>((set, get) => {
     
         const markAsUnmodified = (items: FileSystemItem[]): FileSystemItem[] => {
           return items.map(item => {
-            if (item.type === 'file') {
+            if (item.type === 'file' && modifiedFiles.find(f => f.id === item.id)) {
               return { ...item, isModified: false };
             }
             if (item.type === 'folder' && item.children) {
