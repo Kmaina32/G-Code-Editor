@@ -49,11 +49,11 @@ export function UserNav({ user, auth }: UserNavProps) {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage
-              src={user?.photoURL || "https://i.pravatar.cc/150?u=a042581f4e29026704d"}
-              alt={user?.displayName || "Guest"}
+              src={user?.photoURL || ""}
+              alt={user?.displayName || "User"}
             />
             <AvatarFallback>
-              {user?.email?.[0].toUpperCase() || 'G'}
+              {user?.displayName?.[0] || user?.email?.[0].toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -86,5 +86,3 @@ export function UserNav({ user, auth }: UserNavProps) {
     </DropdownMenu>
   );
 }
-
-    
