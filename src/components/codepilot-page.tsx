@@ -23,7 +23,7 @@ import {
   PanelLeft,
   ChevronRight,
 } from 'lucide-react';
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   ResizableHandle,
@@ -906,5 +906,3 @@ export function CodePilotPage() {
     </SidebarProvider>
   );
 }
-
-    
