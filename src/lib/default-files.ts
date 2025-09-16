@@ -1,4 +1,4 @@
-import type { File } from './store';
+import type { FileSystemItem } from './store';
 
 const htmlContent = `<!DOCTYPE html>
 <html>
@@ -73,9 +73,19 @@ print("Here are the first 10 Fibonacci numbers:")
 print(fibonacci(10))
 `;
 
-export const defaultFiles: Omit<File, 'id'>[] = [
-  { name: 'index.html', language: 'html', content: htmlContent },
-  { name: 'style.css', language: 'css', content: cssContent },
-  { name: 'script.js', language: 'javascript', content: jsContent },
-  { name: 'main.py', language: 'python', content: pythonContent },
+
+export const defaultFileTree: FileSystemItem[] = [
+  {
+    id: 'folder-src',
+    name: 'src',
+    type: 'folder',
+    path: '/src',
+    isOpen: true,
+    children: [
+      { id: 'file-html', name: 'index.html', language: 'html', content: htmlContent, type: 'file', path: '/src/index.html' },
+      { id: 'file-css', name: 'style.css', language: 'css', content: cssContent, type: 'file', path: '/src/style.css' },
+      { id: 'file-js', name: 'script.js', language: 'javascript', content: jsContent, type: 'file', path: '/src/script.js' },
+    ]
+  },
+  { id: 'file-py', name: 'main.py', language: 'python', content: pythonContent, type: 'file', path: '/main.py' },
 ];

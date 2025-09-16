@@ -12,11 +12,12 @@ import { GitCommit, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function GitPage() {
-  const { files, commits, commitChanges, viewCommit } = useStore();
+  const { getFiles, commits, commitChanges, viewCommit } = useStore();
   const [commitMessage, setCommitMessage] = useState("");
   const { toast } = useToast();
 
-  const modifiedFiles = files.filter(file => file.isModified && !file.isReadOnly);
+  const allFiles = getFiles();
+  const modifiedFiles = allFiles.filter(file => file.isModified && !file.isReadOnly);
 
   const handleCommit = () => {
     if (!commitMessage) {
@@ -123,5 +124,3 @@ export default function GitPage() {
     </div>
   );
 }
-
-    

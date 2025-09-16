@@ -172,7 +172,6 @@ export function FileTypeIcon({
 
 export function CodePilotPage() {
   const {
-    files,
     openFileIds,
     activeFileId,
     loadInitialFiles,
@@ -180,12 +179,17 @@ export function CodePilotPage() {
     openFile,
     closeFile,
     setActiveFile,
-    deleteFile,
+    deleteItem,
     fileToDelete,
     setFileToDelete,
     isLoading,
     editorSettings,
+    getFiles,
+    findFile,
   } = useStore();
+
+  const files = getFiles();
+
   const [output, setOutput] = useState('');
   const [previewDoc, setPreviewDoc] = useState('');
   const [activeTab, setActiveTab] = useState('terminal');
@@ -269,9 +273,10 @@ export function CodePilotPage() {
 
   useEffect(() => {
     // Live preview logic
-    const htmlFile = files.find((f) => f.name.endsWith('.html'));
-    const cssFile = files.find((f) => f.name.endsWith('.css'));
-    const jsFile = files.find((f) => f.name.endsWith('.js'));
+    const allFiles = getFiles();
+    const htmlFile = allFiles.find((f) => f.name.endsWith('.html'));
+    const cssFile = allFiles.find((f) => f.name.endsWith('.css'));
+    const jsFile = allFiles.find((f) => f.name.endsWith('.js'));
 
     const srcDoc = `
       <html>
@@ -303,19 +308,19 @@ export function CodePilotPage() {
       </html>
     `;
     setPreviewDoc(srcDoc);
-  }, [files]);
+  }, [files, getFiles]);
 
 
   const activeFile = useMemo(
-    () => files.find((file) => file.id === activeFileId),
-    [files, activeFileId]
+    () => findFile(activeFileId || ''),
+    [findFile, activeFileId]
   );
   const openFiles = useMemo(
     () =>
       openFileIds
-        .map((id) => files.find((f) => f.id === id))
+        .map((id) => findFile(id))
         .filter(Boolean) as File[],
-    [openFileIds, files]
+    [openFileIds, findFile]
   );
 
   const getCommandForFile = (file: File) => {
@@ -451,8 +456,19 @@ export function CodePilotPage() {
 
   const handleExportProject = async () => {
     const zip = new JSZip();
-    files.forEach((file) => {
-      zip.file(file.name, file.content);
+    const allFiles = getFiles();
+    allFiles.forEach((file) => {
+      // Create folders in the zip file based on the file's path
+      const pathParts = file.path.split('/').filter(p => p);
+      let currentFolder: JSZip | null = zip;
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        currentFolder = currentFolder.folder(pathParts[i]);
+      }
+      if (currentFolder) {
+        currentFolder.file(file.name, file.content);
+      } else {
+        zip.file(file.name, file.content);
+      }
     });
     const content = await zip.generateAsync({ type: 'blob' });
     saveAs(content, 'codepilot-project.zip');
@@ -481,7 +497,7 @@ export function CodePilotPage() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activeFile, files]);
+  }, [activeFile, getFiles]);
 
   const handleClearConsole = () => {
     setOutput('');
@@ -886,7 +902,7 @@ export function CodePilotPage() {
               This action cannot be undone. This will permanently delete the
               file{' '}
               <span className="font-bold">
-                {files.find((f) => f.id === fileToDelete)?.name}
+                {findFile(fileToDelete || '')?.name}
               </span>
               .
             </AlertDialogDescription>
@@ -898,7 +914,7 @@ export function CodePilotPage() {
             <AlertDialogAction
               onClick={() => {
                 if (fileToDelete) {
-                  deleteFile(fileToDelete);
+                  deleteItem(fileToDelete);
                   setFileToDelete(null);
                 }
               }}
@@ -911,9 +927,3 @@ export function CodePilotPage() {
     </TooltipProvider>
   );
 }
-
-    
-
-    
-
-    

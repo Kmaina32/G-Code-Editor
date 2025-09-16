@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -7,12 +8,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Button } from "../ui/button";
 
 export default function SearchPage() {
-  const { files, openFile } = useStore();
+  const { getFiles, openFile } = useStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<Record<string, { lineNumber: number; line: string }[]>>({});
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    const files = getFiles();
     if (!searchTerm) {
       setResults({});
       return;
@@ -60,7 +62,7 @@ export default function SearchPage() {
       {Object.keys(results).length > 0 && (
         <Accordion type="multiple" className="w-full mt-2">
           {Object.entries(results).map(([fileId, matches]) => {
-            const file = files.find(f => f.id === fileId);
+            const file = getFiles().find(f => f.id === fileId);
             if (!file) return null;
             return (
               <AccordionItem value={fileId} key={fileId}>

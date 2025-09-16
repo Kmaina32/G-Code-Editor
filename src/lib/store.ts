@@ -1,20 +1,33 @@
 
 import { create } from 'zustand';
-import { defaultFiles } from './default-files';
+import { defaultFileTree } from './default-files';
 import { defaultExtensions, Extension } from './extensions';
 
-export interface File {
+export type File = {
   id: string;
   name: string;
   language: string;
   content: string;
+  type: 'file';
+  path: string;
   isModified?: boolean;
   isReadOnly?: boolean;
-  originalId?: string; 
-}
+  originalId?: string;
+};
+
+export type Folder = {
+  id: string;
+  name: string;
+  type: 'folder';
+  path: string;
+  children: FileSystemItem[];
+  isOpen?: boolean;
+};
+
+export type FileSystemItem = File | Folder;
 
 export interface Commit {
-  id: string;
+  id:string;
   message: string;
   createdAt: string;
   files: File[];
@@ -24,8 +37,118 @@ export interface EditorSettings {
   fontSize: number;
 }
 
+// Helper function to flatten the tree into a list of files
+const flattenTree = (items: FileSystemItem[]): File[] => {
+  let files: File[] = [];
+  for (const item of items) {
+    if (item.type === 'file') {
+      files.push(item);
+    } else {
+      files = files.concat(flattenTree(item.children));
+    }
+  }
+  return files;
+};
+
+// Helper to find a file by ID in the tree
+const findFileById = (
+  items: FileSystemItem[],
+  id: string
+): File | undefined => {
+  for (const item of items) {
+    if (item.type === 'file' && item.id === id) {
+      return item;
+    }
+    if (item.type === 'folder') {
+      const found = findFileById(item.children, id);
+      if (found) return found;
+    }
+  }
+  return undefined;
+};
+
+
+// Recursive function to add an item
+const addItemToTree = (
+  items: FileSystemItem[],
+  parentId: string | null,
+  newItem: FileSystemItem
+): FileSystemItem[] => {
+    if (parentId === null) {
+        return [...items, newItem];
+    }
+    return items.map(item => {
+        if (item.id === parentId && item.type === 'folder') {
+            return { ...item, children: [...item.children, newItem] };
+        }
+        if (item.type === 'folder') {
+            return { ...item, children: addItemToTree(item.children, parentId, newItem) };
+        }
+        return item;
+    });
+};
+
+// Recursive function to remove an item
+const removeItemFromTree = (items: FileSystemItem[], id: string): FileSystemItem[] => {
+    return items.filter(item => item.id !== id).map(item => {
+        if (item.type === 'folder') {
+            return { ...item, children: removeItemFromTree(item.children, id) };
+        }
+        return item;
+    });
+};
+
+
+// Recursive function to rename an item and update paths
+const renameItemInTree = (items: FileSystemItem[], id: string, newName: string, parentPath: string): FileSystemItem[] => {
+    return items.map(item => {
+        const newPath = `${parentPath}/${newName}`;
+        if (item.id === id) {
+            const updatedItem = { ...item, name: newName, path: newPath };
+            if(updatedItem.type === 'file') {
+                return {...updatedItem, language: getLanguage(newName)}
+            }
+             if (updatedItem.type === 'folder') {
+                return { ...updatedItem, children: updatedItem.children.map(child => ({ ...child, path: `${newPath}/${child.name}` })) };
+            }
+            return updatedItem;
+        }
+        if (item.type === 'folder') {
+            return { ...item, children: renameItemInTree(item.children, id, newName, item.path) };
+        }
+        return item;
+    });
+};
+
+// Recursive function to update file content
+const updateFileContentInTree = (items: FileSystemItem[], id: string, content: string): FileSystemItem[] => {
+    return items.map(item => {
+        if (item.type === 'file' && item.id === id && !item.isReadOnly) {
+            return { ...item, content, isModified: true };
+        }
+        if (item.type === 'folder') {
+            return { ...item, children: updateFileContentInTree(item.children, id, content) };
+        }
+        return item;
+    });
+};
+
+// Recursive function to toggle a folder's open state
+const toggleFolderInTree = (items: FileSystemItem[], id: string): FileSystemItem[] => {
+    return items.map(item => {
+        if (item.type === 'folder' && item.id === id) {
+            return { ...item, isOpen: !item.isOpen };
+        }
+        if (item.type === 'folder') {
+            return { ...item, children: toggleFolderInTree(item.children, id) };
+        }
+        return item;
+    });
+};
+
+
 interface StoreState {
-  files: File[];
+  fileTree: FileSystemItem[];
   openFileIds: string[];
   activeFileId: string | null;
   isLoading: boolean;
@@ -38,10 +161,11 @@ interface StoreState {
 
 interface StoreActions {
   loadInitialFiles: () => void;
-  addFile: (name: string) => void;
-  deleteFile: (id: string) => void;
+  addFile: (name: string, parentId?: string | null) => void;
+  addFolder: (name: string, parentId?: string | null) => void;
+  deleteItem: (id: string) => void;
   setFileToDelete: (id: string | null) => void;
-  renameFile: (id: string, newName: string) => void;
+  renameItem: (id: string, newName: string) => void;
   updateFileContent: (id: string, content: string) => void;
   openFile: (id: string) => void;
   closeFile: (id: string) => void;
@@ -52,6 +176,9 @@ interface StoreActions {
   commitChanges: (message: string) => void;
   setActiveThemeId: (id: string) => void;
   viewCommit: (commitId: string) => void;
+  toggleFolder: (id: string) => void;
+  getFiles: () => File[];
+  findFile: (id: string) => File | undefined;
 }
 
 const getLanguage = (fileName: string): string => {
@@ -75,7 +202,7 @@ const getLanguage = (fileName: string): string => {
 };
 
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
-  files: [],
+  fileTree: [],
   openFileIds: [],
   activeFileId: null,
   isLoading: true,
@@ -96,49 +223,101 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setActiveThemeId: (id: string) => set({ activeThemeId: id }),
 
   loadInitialFiles: () => {
-    const initialFiles = defaultFiles.map((file, index) => ({
-      ...file,
-      id: `file-${index}-${Date.now()}`,
-      isModified: false,
-      isReadOnly: false,
-    }));
+    const initialFiles = flattenTree(defaultFileTree);
     set({
-      files: initialFiles,
+      fileTree: defaultFileTree,
       openFileIds: [initialFiles[0].id],
       activeFileId: initialFiles[0].id,
       isLoading: false,
     });
   },
+  
+  getFiles: () => flattenTree(get().fileTree),
 
-  addFile: (name) => {
+  findFile: (id) => findFileById(get().fileTree, id),
+
+  addFile: (name, parentId = null) => {
+    let parentPath = '';
+    const findParent = (items: FileSystemItem[], id: string | null): FileSystemItem | null => {
+        if (id === null) return null;
+        for (const item of items) {
+            if (item.id === id) return item;
+            if (item.type === 'folder') {
+                const found = findParent(item.children, id);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+    const parent = findParent(get().fileTree, parentId);
+    if(parent) parentPath = parent.path;
+
     const newFile: File = {
-      id: `file-${get().files.length}-${Date.now()}`,
+      id: `file-${Math.random()}`,
       name,
       language: getLanguage(name),
       content: '',
-      isModified: true, // New files are considered "modified"
+      type: 'file',
+      path: parentId ? `${parentPath}/${name}` : `/${name}`,
+      isModified: true,
     };
     set((state) => ({
-      files: [...state.files, newFile],
+      fileTree: addItemToTree(state.fileTree, parentId, newFile),
       openFileIds: [...state.openFileIds, newFile.id],
       activeFileId: newFile.id,
     }));
   },
 
-  deleteFile: (id) => {
-    const file = get().files.find(f => f.id === id);
+  addFolder: (name, parentId = null) => {
+    let parentPath = '';
+    const findParent = (items: FileSystemItem[], id: string | null): FileSystemItem | null => {
+        if (id === null) return null;
+        for (const item of items) {
+            if (item.id === id) return item;
+            if (item.type === 'folder') {
+                const found = findParent(item.children, id);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+    const parent = findParent(get().fileTree, parentId);
+    if(parent) parentPath = parent.path;
+
+    const newFolder: Folder = {
+      id: `folder-${Math.random()}`,
+      name,
+      type: 'folder',
+      path: parentId ? `${parentPath}/${name}` : `/${name}`,
+      children: [],
+      isOpen: true
+    };
+    set(state => ({
+        fileTree: addItemToTree(state.fileTree, parentId, newFolder)
+    }));
+  },
+
+
+  deleteItem: (id) => {
+    const file = get().findFile(id);
     if(file?.isReadOnly){
-      // For read-only files, just close them
       get().closeFile(id);
       return;
     }
 
     set((state) => {
-      const newOpenFileIds = state.openFileIds.filter((fileId) => fileId !== id);
+      const allFiles = flattenTree(state.fileTree);
+      const itemToDelete = allFiles.find(f => f.id === id);
+      const filesToClose = itemToDelete && itemToDelete.type === 'folder' 
+        ? flattenTree([itemToDelete]).map(f => f.id)
+        : [id];
+
+      const newOpenFileIds = state.openFileIds.filter((fileId) => !filesToClose.includes(fileId));
       let newActiveFileId = state.activeFileId;
-      if (state.activeFileId === id) {
+
+      if (state.activeFileId && filesToClose.includes(state.activeFileId)) {
         const closingIndex = state.openFileIds.findIndex(
-          (fileId) => fileId === id
+          (fileId) => fileId === state.activeFileId
         );
         if (newOpenFileIds.length > 0) {
           newActiveFileId = newOpenFileIds[Math.max(0, closingIndex - 1)];
@@ -147,7 +326,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         }
       }
       return {
-        files: state.files.filter((file) => file.id !== id),
+        fileTree: removeItemFromTree(state.fileTree, id),
         openFileIds: newOpenFileIds,
         activeFileId: newActiveFileId,
       };
@@ -155,27 +334,16 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
 
   setFileToDelete: (id) => set({ fileToDelete: id }),
-
-  renameFile: (id, newName) => {
+  
+  renameItem: (id, newName) => {
     set((state) => ({
-      files: state.files.map((file) =>
-        file.id === id
-          ? {
-              ...file,
-              name: newName,
-              language: getLanguage(newName),
-              isModified: true,
-            }
-          : file
-      ),
+      fileTree: renameItemInTree(state.fileTree, id, newName, '')
     }));
   },
-
+  
   updateFileContent: (id, content) => {
     set((state) => ({
-      files: state.files.map((file) =>
-        file.id === id && !file.isReadOnly ? { ...file, content, isModified: true } : file
-      ),
+      fileTree: updateFileContentInTree(state.fileTree, id, content),
     }));
   },
 
@@ -186,8 +354,14 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set({ activeFileId: id });
   },
 
+  toggleFolder: (id) => {
+    set(state => ({
+      fileTree: toggleFolderInTree(state.fileTree, id)
+    }));
+  },
+
   closeFile: (id) => {
-    const { openFileIds, activeFileId, files } = get();
+    const { openFileIds, activeFileId, fileTree } = get();
     const newOpenFileIds = openFileIds.filter((fileId) => fileId !== id);
     let newActiveFileId = activeFileId;
 
@@ -200,13 +374,12 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       }
     }
     
-    // If it's a historical file, remove it from the files array as well
-    const fileToClose = files.find(f => f.id === id);
-    const newFiles = fileToClose?.isReadOnly
-      ? files.filter(f => f.id !== id)
-      : files;
+    const fileToClose = findFileById(fileTree, id);
+    const newFileTree = fileToClose?.isReadOnly
+      ? removeItemFromTree(fileTree, id)
+      : fileTree;
 
-    set({ files: newFiles, openFileIds: newOpenFileIds, activeFileId: newActiveFileId });
+    set({ fileTree: newFileTree, openFileIds: newOpenFileIds, activeFileId: newActiveFileId });
   },
 
   setActiveFile: (id) => {
@@ -230,33 +403,42 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         state.activeThemeId === id ? 'theme-dark' : state.activeThemeId,
     }));
   },
-
+  
   commitChanges: (message: string) => {
-    const { files } = get();
+    const files = get().getFiles();
     const modifiedFiles = files.filter(file => file.isModified && !file.isReadOnly);
-    if(modifiedFiles.length === 0) return;
+    if (modifiedFiles.length === 0) return;
 
     const newCommit: Commit = {
       id: `commit-${Date.now()}`,
       message,
       createdAt: new Date().toISOString(),
-      files: JSON.parse(JSON.stringify(modifiedFiles.map(f => ({...f, isModified: false})))) // Deep copy snapshot
+      files: JSON.parse(JSON.stringify(modifiedFiles.map(f => ({ ...f, isModified: false }))))
     };
-    
+
+    const markAsUnmodified = (items: FileSystemItem[]): FileSystemItem[] => {
+      return items.map(item => {
+        if (item.type === 'file') {
+          return { ...item, isModified: false };
+        }
+        return { ...item, children: markAsUnmodified(item.children) };
+      });
+    };
+
     set(state => ({
       commits: [newCommit, ...state.commits],
-      files: state.files.map(file => ({...file, isModified: false}))
-    }))
+      fileTree: markAsUnmodified(state.fileTree),
+    }));
   },
 
+
   viewCommit: (commitId: string) => {
-    const { commits, files, openFileIds } = get();
+    const { commits, fileTree, openFileIds } = get();
     const commit = commits.find(c => c.id === commitId);
     if (!commit) return;
 
-    // Remove any existing historical files
-    const nonHistoricalFiles = files.filter(f => !f.isReadOnly);
-    const nonHistoricalOpenFileIds = openFileIds.filter(id => nonHistoricalFiles.some(f => f.id === id));
+    const nonHistoricalFileTree = removeItemFromTree(fileTree, 'hist-commit');
+    const nonHistoricalOpenFileIds = openFileIds.filter(id => findFileById(nonHistoricalFileTree, id));
     
     const historicalFiles: File[] = commit.files.map(file => ({
       ...file,
@@ -265,12 +447,19 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       isModified: false,
     }));
 
+    const historicalFolder: Folder = {
+      id: `hist-commit`,
+      name: `Commit: ${commit.message.substring(0, 20)}...`,
+      type: 'folder',
+      path: '/commit',
+      isOpen: true,
+      children: historicalFiles
+    };
+
     set({
-      files: [...nonHistoricalFiles, ...historicalFiles],
+      fileTree: [historicalFolder, ...nonHistoricalFileTree],
       openFileIds: [...nonHistoricalOpenFileIds, ...historicalFiles.map(f => f.id)],
       activeFileId: historicalFiles[0]?.id || null,
-    })
+    });
   }
 }));
-
-    
