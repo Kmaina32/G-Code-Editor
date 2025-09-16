@@ -19,7 +19,8 @@ declare global {
 
 export default function AiCoderPage() {
   const { 
-    getFiles, 
+    openFileIds,
+    findFile,
     isGenerating, 
     setIsGenerating, 
     aiCoderHistory, 
@@ -52,10 +53,22 @@ export default function AiCoderPage() {
     setPrompt("");
 
     try {
-      const allFiles = getFiles().map(f => ({ path: f.path, content: f.content }));
+      const openFiles = openFileIds.map(id => findFile(id)).filter(Boolean).map(f => ({ path: f!.path, content: f!.content }));
+      
+      if (openFiles.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "No files open",
+          description: "Please open the relevant files you want the AI to edit.",
+        });
+        addAiCoderMessage({ role: 'ai', content: { error: "No files were open. Please open the files you want to edit and try again." } });
+        setIsGenerating(false);
+        return;
+      }
+      
       const result = await editCode({
         prompt: prompt,
-        files: allFiles,
+        files: openFiles,
       });
 
       addAiCoderMessage({ role: 'ai', content: result });
